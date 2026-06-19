@@ -1,5 +1,4 @@
-import { useState, useMemo } from "react";
-import { useGetResults } from "@workspace/api-client-react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { GlobeButton } from "../components/GlobeButton";
 import { MatchCard } from "../components/MatchCard";
 import { StandingsTable } from "../components/StandingsTable";
@@ -8,11 +7,35 @@ import { CalendarDatePicker } from "../components/CalendarDatePicker";
 import { GROUP_MATCHES, GROUPS, PARTICIPANTS, FORECASTS, COLORS } from "../data/constants";
 import { getGroupStandings, calcPts, calcBonusPoints } from "../lib/logic";
 
+// URL base de la API. En producción, el backend corre en otro dominio (Render),
+// así que usamos una variable de entorno para apuntar ahí.
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 type Tab = "GRUPOS" | "POR_FECHA" | "TERCEROS" | "EXTRA_GRUPOS" | "TABLA";
 
 export default function Home() {
-  const { data, isLoading } = useGetResults({ query: { refetchInterval: 30000, queryKey: ["results"] } });
-  const results = data?.results || {};
+  const [results, setResults] = useState<Record<string, [number, number]>>({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchResultsFromServer = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/results`);
+      if (res.ok) {
+        const data = await res.json();
+        setResults(data.results || {});
+      }
+    } catch (e) {
+      console.error("Failed to fetch results", e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchResultsFromServer();
+    const interval = setInterval(fetchResultsFromServer, 30000);
+    return () => clearInterval(interval);
+  }, [fetchResultsFromServer]);
 
   const [activeTab, setActiveTab] = useState<Tab>("GRUPOS");
   const [selectedGroup, setSelectedGroup] = useState<string>("A");
@@ -75,7 +98,7 @@ export default function Home() {
           <h1 className="text-xl font-bold tracking-tight text-white uppercase">Vaticinio de los Pronósticos Deportivos</h1>
           <p className="text-primary text-sm font-medium tracking-wide">Copa del Mundo 2026</p>
         </div>
-        <GlobeButton />
+        <GlobeButton onFetched={fetchResultsFromServer} apiBase={API_BASE} />
       </header>
 
       <div className="bg-card border-b border-border sticky top-[76px] z-10">
@@ -132,7 +155,6 @@ export default function Home() {
 
             {activeTab === "POR_FECHA" && (
               <div className="space-y-6">
-                {/* Article rules legend */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   <div className="bg-card border border-border rounded-md p-3">
                     <p className="text-yellow-400 font-bold uppercase tracking-wider mb-1">Art. 16 · +2 pts</p>
@@ -146,7 +168,6 @@ export default function Home() {
 
                 <CalendarDatePicker dates={dates} selected={selectedDate} onSelect={setSelectedDate} />
 
-                {/* Matches sorted by time */}
                 <div className="space-y-4">
                   <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Partidos — {selectedDate}</h2>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
