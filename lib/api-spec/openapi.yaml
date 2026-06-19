@@ -1,0 +1,147 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: API specification for Copa del Mundo 2026 Prode
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: results
+    description: Match result operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /results:
+    get:
+      operationId: getResults
+      tags: [results]
+      summary: Get all match results
+      description: Returns the stored match results as a map of matchId to [home, away] scores
+      responses:
+        "200":
+          description: Match results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResultsData"
+    post:
+      operationId: saveResults
+      tags: [results]
+      summary: Save match results
+      description: Saves the full match results map
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResultsInput"
+      responses:
+        "200":
+          description: Saved results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResultsData"
+
+  /results/fetch:
+    post:
+      operationId: fetchResults
+      tags: [results]
+      summary: Fetch results via AI web search
+      description: Uses AI to search for real World Cup 2026 match results and returns them
+      responses:
+        "200":
+          description: Fetched and merged results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FetchedResults"
+        "500":
+          description: Fetch failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ResultsData:
+      type: object
+      properties:
+        results:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: integer
+            minItems: 2
+            maxItems: 2
+          description: Map of matchId to [homeScore, awayScore]
+      required:
+        - results
+
+    ResultsInput:
+      type: object
+      properties:
+        results:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: integer
+            minItems: 2
+            maxItems: 2
+      required:
+        - results
+
+    FetchedResults:
+      type: object
+      properties:
+        results:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: integer
+            minItems: 2
+            maxItems: 2
+        count:
+          type: integer
+          description: Number of new results fetched
+        message:
+          type: string
+      required:
+        - results
+        - count
+        - message
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error

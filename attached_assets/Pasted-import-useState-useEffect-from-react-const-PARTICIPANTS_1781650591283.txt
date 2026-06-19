@@ -1,0 +1,569 @@
+import { useState, useEffect } from "react";
+
+const PARTICIPANTS = ["Fran", "Joaco", "Mati", "Cochi"];
+const COLORS = ["#FFD700","#00BFFF","#FF6B6B","#98FB98"];
+
+const C = {
+  bg:"#1a3a1a", bgMid:"#1e4a1e", bgLight:"#255225",
+  bgRow1:"#1e3d1e", bgRow2:"#245224", header:"#0d2b0d",
+  border:"#3a6b3a", borderBright:"#5a9a5a",
+  text:"#ffffff", textDim:"#b8d4b8", textMuted:"#7aaa7a",
+  yellow:"#FFD700", green:"#66ff66", red:"#ff6666", blue:"#66ccff",
+};
+
+const s = {
+  app:    { background:C.bg, minHeight:"100vh", fontFamily:"Arial,sans-serif", color:C.text, fontSize:13 },
+  header: { background:C.header, borderBottom:`2px solid #5a9a5a`, padding:"8px 12px", display:"flex", alignItems:"center", justifyContent:"space-between" },
+  title:  { color:C.yellow, fontWeight:700, fontSize:14, margin:0, letterSpacing:1 },
+  subtitle: { color:C.textMuted, fontSize:11, margin:"2px 0 0" },
+  tabBar: { background:C.header, borderBottom:`1px solid ${C.border}`, display:"flex", gap:0, overflowX:"auto" },
+  tab:    (a) => ({ padding:"7px 14px", fontSize:12, fontWeight:a?700:400, cursor:"pointer", border:"none", borderBottom:a?`3px solid ${C.yellow}`:"3px solid transparent", background:"transparent", color:a?C.yellow:"#ccffcc", whiteSpace:"nowrap" }),
+  section:{ padding:"10px" },
+  label:  { color:C.yellow, fontSize:11, fontWeight:700, letterSpacing:1, marginBottom:6, textTransform:"uppercase" },
+  input:  { background:"#0d2b0d", border:`1px solid #5a9a5a`, color:C.text, padding:"4px 6px", fontSize:13, width:36, textAlign:"center", borderRadius:2 },
+  btn:    { background:C.bgLight, border:`1px solid #5a9a5a`, color:C.yellow, padding:"4px 10px", cursor:"pointer", fontSize:12, fontWeight:700, borderRadius:2 },
+  btnSmall:{ background:"transparent", border:`1px solid ${C.border}`, color:C.textMuted, padding:"3px 8px", cursor:"pointer", fontSize:11, borderRadius:2 },
+  tag:    (p) => ({ fontSize:10, fontWeight:700, padding:"1px 6px", borderRadius:2, background:p?"#1a5a1a":"#1a3a5a", color:p?C.green:C.blue, border:`1px solid ${p?C.green:C.blue}` }),
+  groupBtn:(a) => ({ width:26, height:26, border:a?`2px solid ${C.yellow}`:`1px solid ${C.border}`, background:a?C.bgLight:C.header, color:a?C.yellow:C.textMuted, cursor:"pointer", fontSize:11, fontWeight:a?700:400, borderRadius:2, padding:0 }),
+  th:     { background:C.header, color:C.yellow, fontSize:10, fontWeight:700, padding:"4px 3px", textAlign:"center", borderBottom:`1px solid ${C.border}` },
+  td:     (i) => ({ background:i%2===0?C.bgRow1:C.bgRow2, color:C.text, fontSize:11, padding:"4px 3px", textAlign:"center", borderBottom:`1px solid ${C.border}` }),
+};
+
+const GROUPS = {
+  A:["México","Sudáfrica","Corea del Sur","Rep. Checa"],
+  B:["Canadá","Bosnia y Herz.","Qatar","Suiza"],
+  C:["Brasil","Marruecos","Haití","Escocia"],
+  D:["EE.UU.","Paraguay","Australia","Turquía"],
+  E:["Alemania","Curaçao","Costa de Marfil","Ecuador"],
+  F:["Países Bajos","Japón","Suecia","Túnez"],
+  G:["Bélgica","Egipto","Irán","Nueva Zelanda"],
+  H:["España","Cabo Verde","Arabia Saudita","Uruguay"],
+  I:["Francia","Senegal","Irak","Noruega"],
+  J:["Argentina","Argelia","Austria","Jordania"],
+  K:["Portugal","R.D. Congo","Uzbekistán","Colombia"],
+  L:["Inglaterra","Croacia","Ghana","Panamá"],
+};
+
+const FLAG_CODE = {
+  "México":"mx","Sudáfrica":"za","Corea del Sur":"kr","Rep. Checa":"cz",
+  "Canadá":"ca","Bosnia y Herz.":"ba","Qatar":"qa","Suiza":"ch",
+  "Brasil":"br","Marruecos":"ma","Haití":"ht","Escocia":"gb-sct",
+  "EE.UU.":"us","Paraguay":"py","Australia":"au","Turquía":"tr",
+  "Alemania":"de","Curaçao":"cw","Costa de Marfil":"ci","Ecuador":"ec",
+  "Países Bajos":"nl","Japón":"jp","Suecia":"se","Túnez":"tn",
+  "Bélgica":"be","Egipto":"eg","Irán":"ir","Nueva Zelanda":"nz",
+  "España":"es","Cabo Verde":"cv","Arabia Saudita":"sa","Uruguay":"uy",
+  "Francia":"fr","Senegal":"sn","Irak":"iq","Noruega":"no",
+  "Argentina":"ar","Argelia":"dz","Austria":"at","Jordania":"jo",
+  "Portugal":"pt","R.D. Congo":"cd","Uzbekistán":"uz","Colombia":"co",
+  "Inglaterra":"gb-eng","Croacia":"hr","Ghana":"gh","Panamá":"pa",
+};
+
+function Flag({team,size=16}){
+  const code=FLAG_CODE[team];
+  if(!code) return null;
+  return <img src={`https://flagcdn.com/w40/${code}.png`} width={size*1.4} height={size} style={{objectFit:"cover",borderRadius:1,flexShrink:0,verticalAlign:"middle"}} alt={team} onError={e=>{e.target.style.display="none";}} />;
+}
+
+const GROUP_MATCHES = [
+  {id:"A1",group:"A",home:"México",away:"Sudáfrica",fecha:"11/06",hora:"16:00"},
+  {id:"A2",group:"A",home:"Corea del Sur",away:"Rep. Checa",fecha:"11/06",hora:"23:00"},
+  {id:"A3",group:"A",home:"Rep. Checa",away:"Sudáfrica",fecha:"18/06",hora:"13:00"},
+  {id:"A4",group:"A",home:"México",away:"Corea del Sur",fecha:"18/06",hora:"22:00"},
+  {id:"A5",group:"A",home:"Rep. Checa",away:"México",fecha:"24/06",hora:"22:00"},
+  {id:"A6",group:"A",home:"Sudáfrica",away:"Corea del Sur",fecha:"24/06",hora:"22:00"},
+  {id:"B1",group:"B",home:"Canadá",away:"Bosnia y Herz.",fecha:"12/06",hora:"16:00"},
+  {id:"B2",group:"B",home:"Qatar",away:"Suiza",fecha:"13/06",hora:"16:00"},
+  {id:"B3",group:"B",home:"Suiza",away:"Bosnia y Herz.",fecha:"18/06",hora:"16:00"},
+  {id:"B4",group:"B",home:"Canadá",away:"Qatar",fecha:"18/06",hora:"19:00"},
+  {id:"B5",group:"B",home:"Suiza",away:"Canadá",fecha:"24/06",hora:"16:00"},
+  {id:"B6",group:"B",home:"Bosnia y Herz.",away:"Qatar",fecha:"24/06",hora:"16:00"},
+  {id:"C1",group:"C",home:"Brasil",away:"Marruecos",fecha:"13/06",hora:"19:00"},
+  {id:"C2",group:"C",home:"Haití",away:"Escocia",fecha:"13/06",hora:"22:00"},
+  {id:"C3",group:"C",home:"Escocia",away:"Marruecos",fecha:"19/06",hora:"19:00"},
+  {id:"C4",group:"C",home:"Brasil",away:"Haití",fecha:"19/06",hora:"22:00"},
+  {id:"C5",group:"C",home:"Escocia",away:"Brasil",fecha:"24/06",hora:"19:00"},
+  {id:"C6",group:"C",home:"Marruecos",away:"Haití",fecha:"24/06",hora:"19:00"},
+  {id:"D1",group:"D",home:"EE.UU.",away:"Paraguay",fecha:"12/06",hora:"22:00"},
+  {id:"D2",group:"D",home:"Australia",away:"Turquía",fecha:"14/06",hora:"01:00",nota:"madrugada 14/6"},
+  {id:"D3",group:"D",home:"EE.UU.",away:"Australia",fecha:"19/06",hora:"16:00"},
+  {id:"D4",group:"D",home:"Turquía",away:"Paraguay",fecha:"20/06",hora:"01:00",nota:"madrugada 20/6"},
+  {id:"D5",group:"D",home:"Turquía",away:"EE.UU.",fecha:"25/06",hora:"23:00"},
+  {id:"D6",group:"D",home:"Paraguay",away:"Australia",fecha:"25/06",hora:"23:00"},
+  {id:"E1",group:"E",home:"Alemania",away:"Curaçao",fecha:"14/06",hora:"14:00"},
+  {id:"E2",group:"E",home:"Costa de Marfil",away:"Ecuador",fecha:"14/06",hora:"20:00"},
+  {id:"E3",group:"E",home:"Alemania",away:"Costa de Marfil",fecha:"20/06",hora:"17:00"},
+  {id:"E4",group:"E",home:"Ecuador",away:"Curaçao",fecha:"20/06",hora:"21:00"},
+  {id:"E5",group:"E",home:"Ecuador",away:"Alemania",fecha:"25/06",hora:"17:00"},
+  {id:"E6",group:"E",home:"Curaçao",away:"Costa de Marfil",fecha:"25/06",hora:"17:00"},
+  {id:"F1",group:"F",home:"Países Bajos",away:"Japón",fecha:"14/06",hora:"17:00"},
+  {id:"F2",group:"F",home:"Suecia",away:"Túnez",fecha:"14/06",hora:"23:00"},
+  {id:"F3",group:"F",home:"Países Bajos",away:"Suecia",fecha:"20/06",hora:"14:00"},
+  {id:"F4",group:"F",home:"Túnez",away:"Japón",fecha:"21/06",hora:"01:00",nota:"madrugada 21/6"},
+  {id:"F5",group:"F",home:"Túnez",away:"Países Bajos",fecha:"25/06",hora:"20:00"},
+  {id:"F6",group:"F",home:"Japón",away:"Suecia",fecha:"25/06",hora:"20:00"},
+  {id:"G1",group:"G",home:"Bélgica",away:"Egipto",fecha:"15/06",hora:"16:00"},
+  {id:"G2",group:"G",home:"Irán",away:"Nueva Zelanda",fecha:"15/06",hora:"22:00"},
+  {id:"G3",group:"G",home:"Bélgica",away:"Irán",fecha:"21/06",hora:"16:00"},
+  {id:"G4",group:"G",home:"Nueva Zelanda",away:"Egipto",fecha:"21/06",hora:"22:00"},
+  {id:"G5",group:"G",home:"Nueva Zelanda",away:"Bélgica",fecha:"27/06",hora:"00:00",nota:"madrugada 27/6"},
+  {id:"G6",group:"G",home:"Egipto",away:"Irán",fecha:"27/06",hora:"00:00",nota:"madrugada 27/6"},
+  {id:"H1",group:"H",home:"España",away:"Cabo Verde",fecha:"15/06",hora:"13:00"},
+  {id:"H2",group:"H",home:"Arabia Saudita",away:"Uruguay",fecha:"15/06",hora:"19:00"},
+  {id:"H3",group:"H",home:"España",away:"Arabia Saudita",fecha:"21/06",hora:"13:00"},
+  {id:"H4",group:"H",home:"Uruguay",away:"Cabo Verde",fecha:"21/06",hora:"19:00"},
+  {id:"H5",group:"H",home:"Uruguay",away:"España",fecha:"26/06",hora:"21:00"},
+  {id:"H6",group:"H",home:"Cabo Verde",away:"Arabia Saudita",fecha:"26/06",hora:"21:00"},
+  {id:"I1",group:"I",home:"Francia",away:"Senegal",fecha:"16/06",hora:"16:00"},
+  {id:"I2",group:"I",home:"Irak",away:"Noruega",fecha:"16/06",hora:"19:00"},
+  {id:"I3",group:"I",home:"Francia",away:"Irak",fecha:"22/06",hora:"18:00"},
+  {id:"I4",group:"I",home:"Noruega",away:"Senegal",fecha:"22/06",hora:"21:00"},
+  {id:"I5",group:"I",home:"Noruega",away:"Francia",fecha:"26/06",hora:"16:00"},
+  {id:"I6",group:"I",home:"Senegal",away:"Irak",fecha:"26/06",hora:"16:00"},
+  {id:"J1",group:"J",home:"Argentina",away:"Argelia",fecha:"16/06",hora:"22:00"},
+  {id:"J2",group:"J",home:"Austria",away:"Jordania",fecha:"17/06",hora:"01:00",nota:"madrugada 17/6"},
+  {id:"J3",group:"J",home:"Argentina",away:"Austria",fecha:"22/06",hora:"14:00"},
+  {id:"J4",group:"J",home:"Jordania",away:"Argelia",fecha:"23/06",hora:"00:00",nota:"madrugada 23/6"},
+  {id:"J5",group:"J",home:"Jordania",away:"Argentina",fecha:"27/06",hora:"23:00"},
+  {id:"J6",group:"J",home:"Argelia",away:"Austria",fecha:"27/06",hora:"23:00"},
+  {id:"K1",group:"K",home:"Portugal",away:"R.D. Congo",fecha:"17/06",hora:"14:00"},
+  {id:"K2",group:"K",home:"Uzbekistán",away:"Colombia",fecha:"17/06",hora:"23:00"},
+  {id:"K3",group:"K",home:"Portugal",away:"Uzbekistán",fecha:"23/06",hora:"14:00"},
+  {id:"K4",group:"K",home:"Colombia",away:"R.D. Congo",fecha:"23/06",hora:"23:00"},
+  {id:"K5",group:"K",home:"Colombia",away:"Portugal",fecha:"27/06",hora:"20:30"},
+  {id:"K6",group:"K",home:"R.D. Congo",away:"Uzbekistán",fecha:"27/06",hora:"20:30"},
+  {id:"L1",group:"L",home:"Inglaterra",away:"Croacia",fecha:"17/06",hora:"17:00"},
+  {id:"L2",group:"L",home:"Ghana",away:"Panamá",fecha:"17/06",hora:"20:00"},
+  {id:"L3",group:"L",home:"Inglaterra",away:"Ghana",fecha:"23/06",hora:"17:00"},
+  {id:"L4",group:"L",home:"Panamá",away:"Croacia",fecha:"23/06",hora:"20:00"},
+  {id:"L5",group:"L",home:"Panamá",away:"Inglaterra",fecha:"27/06",hora:"18:00"},
+  {id:"L6",group:"L",home:"Croacia",away:"Ghana",fecha:"27/06",hora:"18:00"},
+];
+
+const FORECASTS = {
+  "Cochi_A1":[1,0],"Cochi_A2":[1,1],"Cochi_A3":[2,1],"Cochi_A4":[1,1],"Cochi_A5":[0,2],"Cochi_A6":[1,2],
+  "Cochi_B1":[2,1],"Cochi_B2":[0,2],"Cochi_B3":[1,0],"Cochi_B4":[2,0],"Cochi_B5":[1,1],"Cochi_B6":[1,0],
+  "Cochi_C1":[2,1],"Cochi_C2":[0,3],"Cochi_C3":[1,2],"Cochi_C4":[4,1],"Cochi_C5":[1,2],"Cochi_C6":[3,1],
+  "Cochi_D1":[1,0],"Cochi_D2":[0,1],"Cochi_D3":[2,0],"Cochi_D4":[1,1],"Cochi_D5":[1,2],"Cochi_D6":[2,1],
+  "Cochi_E1":[8,0],"Cochi_E2":[0,2],"Cochi_E3":[2,0],"Cochi_E4":[2,0],"Cochi_E5":[1,2],"Cochi_E6":[1,2],
+  "Cochi_F1":[1,2],"Cochi_F2":[1,0],"Cochi_F3":[3,1],"Cochi_F4":[1,2],"Cochi_F5":[1,2],"Cochi_F6":[0,3],
+  "Cochi_G1":[2,1],"Cochi_G2":[0,0],"Cochi_G3":[1,0],"Cochi_G4":[1,1],"Cochi_G5":[2,1],"Cochi_G6":[1,2],
+  "Cochi_H1":[8,0],"Cochi_H2":[0,1],"Cochi_H3":[3,1],"Cochi_H4":[4,1],"Cochi_H5":[0,1],"Cochi_H6":[1,2],
+  "Cochi_I1":[2,1],"Cochi_I2":[0,2],"Cochi_I3":[3,0],"Cochi_I4":[1,2],"Cochi_I5":[0,1],"Cochi_I6":[2,1],
+  "Cochi_J1":[1,0],"Cochi_J2":[3,1],"Cochi_J3":[1,0],"Cochi_J4":[1,2],"Cochi_J5":[0,1],"Cochi_J6":[0,3],
+  "Cochi_K1":[3,0],"Cochi_K2":[0,2],"Cochi_K3":[2,1],"Cochi_K4":[3,0],"Cochi_K5":[1,1],"Cochi_K6":[1,2],
+  "Cochi_L1":[2,1],"Cochi_L2":[1,1],"Cochi_L3":[3,0],"Cochi_L4":[0,2],"Cochi_L5":[0,4],"Cochi_L6":[1,0],
+  "Fran_A1":[2,0],"Fran_A2":[1,0],"Fran_A3":[1,0],"Fran_A4":[1,1],"Fran_A5":[1,3],"Fran_A6":[1,1],
+  "Fran_B1":[2,2],"Fran_B2":[0,3],"Fran_B3":[2,0],"Fran_B4":[2,1],"Fran_B5":[2,0],"Fran_B6":[1,0],
+  "Fran_C1":[2,2],"Fran_C2":[0,1],"Fran_C3":[0,3],"Fran_C4":[5,0],"Fran_C5":[1,2],"Fran_C6":[3,1],
+  "Fran_D1":[1,0],"Fran_D2":[0,0],"Fran_D3":[1,2],"Fran_D4":[0,1],"Fran_D5":[0,2],"Fran_D6":[2,1],
+  "Fran_E1":[5,1],"Fran_E2":[0,2],"Fran_E3":[3,1],"Fran_E4":[2,0],"Fran_E5":[0,1],"Fran_E6":[1,2],
+  "Fran_F1":[1,0],"Fran_F2":[2,0],"Fran_F3":[1,0],"Fran_F4":[1,2],"Fran_F5":[2,1],"Fran_F6":[0,3],
+  "Fran_G1":[2,0],"Fran_G2":[1,1],"Fran_G3":[3,0],"Fran_G4":[0,1],"Fran_G5":[2,0],"Fran_G6":[1,2],
+  "Fran_H1":[6,2],"Fran_H2":[0,2],"Fran_H3":[2,0],"Fran_H4":[3,1],"Fran_H5":[0,1],"Fran_H6":[0,2],
+  "Fran_I1":[2,0],"Fran_I2":[0,1],"Fran_I3":[3,0],"Fran_I4":[1,1],"Fran_I5":[1,3],"Fran_I6":[2,0],
+  "Fran_J1":[1,0],"Fran_J2":[2,0],"Fran_J3":[1,0],"Fran_J4":[0,2],"Fran_J5":[0,0],"Fran_J6":[1,4],
+  "Fran_K1":[4,0],"Fran_K2":[0,3],"Fran_K3":[3,1],"Fran_K4":[4,1],"Fran_K5":[0,2],"Fran_K6":[4,5],
+  "Fran_L1":[1,1],"Fran_L2":[0,0],"Fran_L3":[2,0],"Fran_L4":[1,3],"Fran_L5":[0,3],"Fran_L6":[2,1],
+  "Joaco_A1":[1,0],"Joaco_A2":[1,1],"Joaco_A3":[2,1],"Joaco_A4":[1,1],"Joaco_A5":[0,1],"Joaco_A6":[0,2],
+  "Joaco_B1":[0,0],"Joaco_B2":[0,3],"Joaco_B3":[2,1],"Joaco_B4":[2,0],"Joaco_B5":[1,0],"Joaco_B6":[1,0],
+  "Joaco_C1":[1,1],"Joaco_C2":[0,2],"Joaco_C3":[0,1],"Joaco_C4":[4,0],"Joaco_C5":[1,2],"Joaco_C6":[3,0],
+  "Joaco_D1":[1,0],"Joaco_D2":[0,2],"Joaco_D3":[2,0],"Joaco_D4":[1,1],"Joaco_D5":[1,1],"Joaco_D6":[2,1],
+  "Joaco_E1":[6,2],"Joaco_E2":[1,1],"Joaco_E3":[2,0],"Joaco_E4":[2,0],"Joaco_E5":[3,5],"Joaco_E6":[1,2],
+  "Joaco_F1":[1,0],"Joaco_F2":[2,0],"Joaco_F3":[2,0],"Joaco_F4":[0,2],"Joaco_F5":[1,0],"Joaco_F6":[0,3],
+  "Joaco_G1":[3,1],"Joaco_G2":[2,1],"Joaco_G3":[2,0],"Joaco_G4":[0,1],"Joaco_G5":[1,1],"Joaco_G6":[0,2],
+  "Joaco_H1":[3,0],"Joaco_H2":[0,1],"Joaco_H3":[2,0],"Joaco_H4":[2,1],"Joaco_H5":[1,2],"Joaco_H6":[1,2],
+  "Joaco_I1":[2,1],"Joaco_I2":[0,2],"Joaco_I3":[3,0],"Joaco_I4":[1,2],"Joaco_I5":[1,2],"Joaco_I6":[2,0],
+  "Joaco_J1":[2,0],"Joaco_J2":[3,0],"Joaco_J3":[1,0],"Joaco_J4":[0,2],"Joaco_J5":[0,1],"Joaco_J6":[0,3],
+  "Joaco_K1":[2,0],"Joaco_K2":[0,2],"Joaco_K3":[2,1],"Joaco_K4":[3,0],"Joaco_K5":[2,2],"Joaco_K6":[1,2],
+  "Joaco_L1":[1,0],"Joaco_L2":[3,0],"Joaco_L3":[2,1],"Joaco_L4":[0,2],"Joaco_L5":[0,2],"Joaco_L6":[2,1],
+  "Mati_A1":[2,0],"Mati_A2":[2,1],"Mati_A3":[3,1],"Mati_A4":[1,1],"Mati_A5":[1,2],"Mati_A6":[0,3],
+  "Mati_B1":[0,1],"Mati_B2":[0,3],"Mati_B3":[2,1],"Mati_B4":[2,1],"Mati_B5":[2,0],"Mati_B6":[3,0],
+  "Mati_C1":[3,2],"Mati_C2":[0,2],"Mati_C3":[1,2],"Mati_C4":[8,0],"Mati_C5":[1,2],"Mati_C6":[4,0],
+  "Mati_D1":[2,0],"Mati_D2":[1,3],"Mati_D3":[3,0],"Mati_D4":[1,1],"Mati_D5":[1,1],"Mati_D6":[2,0],
+  "Mati_E1":[6,0],"Mati_E2":[0,2],"Mati_E3":[3,0],"Mati_E4":[3,0],"Mati_E5":[1,4],"Mati_E6":[0,1],
+  "Mati_F1":[2,1],"Mati_F2":[2,0],"Mati_F3":[2,0],"Mati_F4":[0,2],"Mati_F5":[2,1],"Mati_F6":[0,4],
+  "Mati_G1":[3,1],"Mati_G2":[0,0],"Mati_G3":[2,0],"Mati_G4":[0,2],"Mati_G5":[2,1],"Mati_G6":[0,3],
+  "Mati_H1":[8,0],"Mati_H2":[1,2],"Mati_H3":[3,1],"Mati_H4":[3,0],"Mati_H5":[1,3],"Mati_H6":[1,2],
+  "Mati_I1":[3,1],"Mati_I2":[0,2],"Mati_I3":[4,0],"Mati_I4":[1,2],"Mati_I5":[1,1],"Mati_I6":[3,1],
+  "Mati_J1":[2,0],"Mati_J2":[2,0],"Mati_J3":[3,1],"Mati_J4":[1,2],"Mati_J5":[1,1],"Mati_J6":[0,5],
+  "Mati_K1":[6,0],"Mati_K2":[1,2],"Mati_K3":[4,1],"Mati_K4":[3,0],"Mati_K5":[0,0],"Mati_K6":[0,1],
+  "Mati_L1":[1,2],"Mati_L2":[1,1],"Mati_L3":[3,0],"Mati_L4":[1,3],"Mati_L5":[0,4],"Mati_L6":[4,0],
+};
+
+// Agrupar partidos por fecha
+const DATES = [...new Set(GROUP_MATCHES.map(m=>m.fecha))].sort((a,b)=>{
+  const [da,ma]=a.split("/").map(Number);
+  const [db,mb]=b.split("/").map(Number);
+  return ma!==mb?ma-mb:da-db;
+});
+
+function calcGroupStandings(g,results){
+  const teams=GROUPS[g], st={};
+  teams.forEach(t=>{st[t]={pj:0,g:0,e:0,p:0,gf:0,gc:0,pts:0};});
+  GROUP_MATCHES.filter(m=>m.group===g).forEach(m=>{
+    const res=results[m.id]; if(!res) return;
+    const [rh,ra]=res;
+    st[m.home].pj++;st[m.away].pj++;
+    st[m.home].gf+=rh;st[m.home].gc+=ra;
+    st[m.away].gf+=ra;st[m.away].gc+=rh;
+    if(rh>ra){st[m.home].g++;st[m.home].pts+=3;st[m.away].p++;}
+    else if(ra>rh){st[m.away].g++;st[m.away].pts+=3;st[m.home].p++;}
+    else{st[m.home].e++;st[m.home].pts++;st[m.away].e++;st[m.away].pts++;}
+  });
+  return teams.map(t=>({team:t,...st[t],dg:st[t].gf-st[t].gc})).sort((a,b)=>b.pts-a.pts||b.dg-a.dg||b.gf-a.gf);
+}
+
+function calcAllThirds(results){
+  return Object.keys(GROUPS).map(g=>{
+    const st=calcGroupStandings(g,results);
+    return st[2]?{...st[2],group:g}:null;
+  }).filter(Boolean).sort((a,b)=>b.pts-a.pts||b.dg-a.dg||b.gf-a.gf);
+}
+
+function calcPts(pred,real){
+  if(!pred||!real) return null;
+  const [ph,pa]=pred,[rh,ra]=real;
+  const rs=rh>ra?1:rh<ra?-1:0,ps=ph>pa?1:ph<pa?-1:0;
+  if(ph===rh&&pa===ra) return 4;
+  if(ps===rs) return 2;
+  return 0;
+}
+
+function PtsBadge({pred,real}){
+  const pts=calcPts(pred,real);
+  if(pts===null) return null;
+  const col=pts===4?C.green:pts===2?C.yellow:C.red;
+  return <span style={{fontSize:10,fontWeight:700,padding:"1px 5px",border:`1px solid ${col}`,color:col,borderRadius:2,marginLeft:4}}>{pts>0?`+${pts}`:0}</span>;
+}
+
+function MatchCard({m, result, forecasts}){
+  return(
+    <div style={{border:`1px solid ${C.border}`,marginBottom:8,background:C.bgMid}}>
+      {/* Título con banderas y nombres */}
+      <div style={{background:C.header,padding:"5px 8px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:`1px solid ${C.border}`}}>
+        <div style={{display:"flex",alignItems:"center",gap:5}}>
+          <Flag team={m.home} size={14}/>
+          <span style={{color:C.text,fontSize:12,fontWeight:700}}>{m.home}</span>
+          <span style={{color:C.textMuted,fontSize:11,margin:"0 3px"}}>vs.</span>
+          <span style={{color:C.text,fontSize:12,fontWeight:700}}>{m.away}</span>
+          <Flag team={m.away} size={14}/>
+        </div>
+        <span style={s.tag(!!result)}>{result?"JUGADO":`${m.hora} hs`}</span>
+      </div>
+      {/* Resultado real */}
+      {result && (
+        <div style={{textAlign:"center",padding:"4px",background:"#0d3d0d",borderBottom:`1px solid ${C.border}`}}>
+          <span style={{color:C.yellow,fontSize:18,fontWeight:700}}>{result[0]} - {result[1]}</span>
+        </div>
+      )}
+      {/* Pronósticos */}
+      <div>
+        {PARTICIPANTS.map((p,i)=>{
+          const pred=forecasts[`${p}_${m.id}`];
+          return(
+            <div key={p} style={{display:"flex",alignItems:"center",gap:8,padding:"3px 8px",background:i%2===0?C.bgRow1:C.bgRow2,borderBottom:i<3?`1px solid ${C.border}`:"none"}}>
+              <span style={{color:COLORS[i],fontWeight:700,fontSize:11,width:40,flexShrink:0}}>{p}</span>
+              {pred
+                ?<><span style={{color:C.textDim,fontSize:12}}>{pred[0]} - {pred[1]}</span><PtsBadge pred={pred} real={result}/></>
+                :<span style={{color:C.textMuted,fontSize:10}}>— sin pronóstico</span>
+              }
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function GroupSelector({sel,onSel}){
+  return(
+    <div style={{display:"flex",gap:4,marginBottom:10,flexWrap:"wrap"}}>
+      {Object.keys(GROUPS).map(g=>(
+        <button key={g} onClick={()=>onSel(g)} style={s.groupBtn(sel===g)}>{g}</button>
+      ))}
+    </div>
+  );
+}
+
+function StandingsTable({standings}){
+  return(
+    <div style={{marginBottom:10,border:`1px solid ${C.border}`}}>
+      <table style={{width:"100%",borderCollapse:"collapse"}}>
+        <thead>
+          <tr>
+            <th style={{...s.th,textAlign:"left",paddingLeft:6}}># Equipo</th>
+            <th style={s.th}>PJ</th><th style={s.th}>G</th><th style={s.th}>E</th><th style={s.th}>P</th>
+            <th style={s.th}>GF</th><th style={s.th}>GC</th><th style={s.th}>DIF</th><th style={s.th}>PTS</th>
+          </tr>
+        </thead>
+        <tbody>
+          {standings.map((row,i)=>{
+            const q=i<2;
+            return(
+              <tr key={row.team}>
+                <td style={{...s.td(i),textAlign:"left",paddingLeft:4}}>
+                  <div style={{display:"flex",alignItems:"center",gap:5}}>
+                    <span style={{color:q?C.yellow:C.textMuted,fontWeight:700,width:14}}>{i+1}</span>
+                    {q&&<span style={{color:C.green,fontSize:9,fontWeight:700}}>▲</span>}
+                    <Flag team={row.team} size={13}/>
+                    <span style={{color:q?C.text:C.textDim}}>{row.team}</span>
+                  </div>
+                </td>
+                <td style={s.td(i)}>{row.pj}</td><td style={s.td(i)}>{row.g}</td>
+                <td style={s.td(i)}>{row.e}</td><td style={s.td(i)}>{row.p}</td>
+                <td style={s.td(i)}>{row.gf}</td><td style={s.td(i)}>{row.gc}</td>
+                <td style={{...s.td(i),color:row.dg>0?C.green:row.dg<0?C.red:C.textDim,fontWeight:row.dg!==0?700:400}}>
+                  {row.dg>0?`+${row.dg}`:row.dg}
+                </td>
+                <td style={{...s.td(i),color:C.yellow,fontWeight:700}}>{row.pts}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export default function App() {
+  const [tab,setTab]=useState("grupos");
+  const [selGroup,setSelGroup]=useState("A");
+  const [selDate,setSelDate]=useState(DATES[0]);
+  const [results,setResults]=useState({});
+  const [loading,setLoading]=useState(true);
+  const [fetchStatus,setFetchStatus]=useState("");
+  const [fetching,setFetching]=useState(false);
+
+  useEffect(()=>{
+    const load=async()=>{
+      try{
+        const stored=await window.storage.get("prode_results");
+        if(stored) setResults(JSON.parse(stored.value));
+      }catch{}
+      setLoading(false);
+    };
+    load();
+    const iv=setInterval(async()=>{
+      try{
+        const stored=await window.storage.get("prode_results");
+        if(stored) setResults(JSON.parse(stored.value));
+      }catch{}
+    },30000);
+    return()=>clearInterval(iv);
+  },[]);
+
+  const saveResults=async(nr)=>{
+    try{
+      await window.storage.set("prode_results",JSON.stringify(nr),true);
+      setResults(nr);
+    }catch(e){console.error(e);}
+  };
+
+  const fetchResults=async()=>{
+    setFetching(true);setFetchStatus("Buscando en internet...");
+    try{
+      const matchList=GROUP_MATCHES.map(m=>`${m.id}:${m.home} vs ${m.away}`).join(", ");
+      const res=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          model:"claude-sonnet-4-6",max_tokens:2000,
+          tools:[{"type":"web_search_20250305","name":"web_search"}],
+          system:`Buscá resultados del Mundial 2026 y devolvé SOLO JSON sin markdown. Formato: {"resultados":[{"id":"A1","home":N,"away":N}]}. Solo partidos ya jugados con resultado final. Sin texto adicional.`,
+          messages:[{role:"user",content:`Buscá resultados reales ya confirmados del Mundial 2026. Partidos: ${matchList}. Solo los jugados en JSON.`}],
+        }),
+      });
+      const json=await res.json();
+      const textBlock=json.content?.find(b=>b.type==="text");
+      const text=textBlock?.text||"{}";
+      const parsed=JSON.parse(text.replace(/```json|```/g,"").trim());
+      if(parsed.resultados?.length>0){
+        const nr={...results};
+        parsed.resultados.forEach(r=>{nr[r.id]=[r.home,r.away];});
+        saveResults(nr);
+        setFetchStatus(`✓ ${parsed.resultados.length} resultados actualizados`);
+      }else{setFetchStatus("Sin nuevos resultados");}
+    }catch(e){setFetchStatus("✗ Error: "+e.message);}
+    setFetching(false);setTimeout(()=>setFetchStatus(""),4000);
+  };
+
+  const calcScores=()=>{
+    const sc={};PARTICIPANTS.forEach(p=>{sc[p]=0;});
+    GROUP_MATCHES.forEach(m=>{
+      const real=results[m.id]; if(!real) return;
+      PARTICIPANTS.forEach(p=>{
+        const pts=calcPts(FORECASTS[`${p}_${m.id}`],real);
+        if(pts) sc[p]+=pts;
+      });
+    });
+    return sc;
+  };
+
+  const tabs=["grupos","fecha","terceros","tabla"];
+  const labels={grupos:"GRUPOS",fecha:"POR FECHA",terceros:"TERCEROS",tabla:"TABLA"};
+
+  if(loading) return(
+    <div style={{...s.app,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12}}>
+      <div style={{color:C.yellow,fontSize:14,fontWeight:700}}>🏆 VATICINIO DE LOS PRONÓSTICOS DEPORTIVOS</div>
+      <div style={{color:C.textMuted,fontSize:12}}>Cargando...</div>
+    </div>
+  );
+
+  return(
+    <div style={s.app}>
+      <div style={s.header}>
+        <div>
+          <p style={s.title}>🏆 VATICINIO DE LOS PRONÓSTICOS DEPORTIVOS</p>
+          <p style={s.subtitle}>COPA DEL MUNDO 2026</p>
+        </div>
+        <button onClick={fetchResults} disabled={fetching} style={{...s.btnSmall,color:C.blue,borderColor:C.blue}}>
+          {fetching?"...":"🌐"}
+        </button>
+      </div>
+      {fetchStatus&&<div style={{background:C.header,padding:"4px 12px",fontSize:11,color:fetchStatus.startsWith("✓")?C.green:C.red,fontWeight:700}}>{fetchStatus}</div>}
+
+      <div style={s.tabBar}>
+        {tabs.map(t=>(
+          <button key={t} onClick={()=>setTab(t)} style={s.tab(tab===t)}>{labels[t]}</button>
+        ))}
+      </div>
+
+      {tab==="grupos"&&<ViewGroups results={results} selGroup={selGroup} setSelGroup={setSelGroup}/>}
+      {tab==="fecha"&&<ViewFecha results={results} selDate={selDate} setSelDate={setSelDate}/>}
+      {tab==="terceros"&&<TercerosTab results={results}/>}
+      {tab==="tabla"&&<TablaTab scores={calcScores()}/>}
+    </div>
+  );
+}
+
+function ViewGroups({results,selGroup,setSelGroup}){
+  const matches=GROUP_MATCHES.filter(m=>m.group===selGroup);
+  const standings=calcGroupStandings(selGroup,results);
+  return(
+    <div style={s.section}>
+      <GroupSelector sel={selGroup} onSel={setSelGroup}/>
+      <div style={s.label}>GRUPO {selGroup} — {GROUPS[selGroup].join(" · ")}</div>
+      <StandingsTable standings={standings}/>
+      <div style={s.label}>PARTIDOS</div>
+      {matches.map(m=>(
+        <MatchCard key={m.id} m={m} result={results[m.id]} forecasts={FORECASTS}/>
+      ))}
+    </div>
+  );
+}
+
+function ViewFecha({results,selDate,setSelDate}){
+  const matches=GROUP_MATCHES.filter(m=>m.fecha===selDate).sort((a,b)=>a.hora.localeCompare(b.hora));
+  const [d,mo]=selDate.split("/");
+  const meses=["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  return(
+    <div style={s.section}>
+      {/* Selector de fecha */}
+      <div style={{display:"flex",gap:4,marginBottom:12,flexWrap:"wrap"}}>
+        {DATES.map(fecha=>{
+          const [dd]=fecha.split("/");
+          const active=fecha===selDate;
+          return(
+            <button key={fecha} onClick={()=>setSelDate(fecha)} style={{
+              padding:"4px 8px",border:active?`2px solid ${C.yellow}`:`1px solid ${C.border}`,
+              background:active?C.bgLight:C.header,color:active?C.yellow:C.textMuted,
+              cursor:"pointer",fontSize:11,fontWeight:active?700:400,borderRadius:2,minWidth:32,
+            }}>{dd}</button>
+          );
+        })}
+      </div>
+      <div style={s.label}>PARTIDOS DEL {d} DE {meses[Number(mo)]}</div>
+      {matches.length===0
+        ?<div style={{color:C.textMuted,fontSize:12,textAlign:"center",padding:"20px"}}>Sin partidos este día</div>
+        :matches.map(m=>(
+          <MatchCard key={m.id} m={m} result={results[m.id]} forecasts={FORECASTS}/>
+        ))
+      }
+    </div>
+  );
+}
+
+function TercerosTab({results}){
+  const thirds=calcAllThirds(results);
+  return(
+    <div style={s.section}>
+      <div style={s.label}>MEJORES TERCEROS</div>
+      <div style={{color:C.textDim,fontSize:11,marginBottom:8}}>Los 8 mejores terceros clasifican a dieciseisavos. <span style={{color:C.green}}>▲ = clasifica</span></div>
+      <div style={{border:`1px solid ${C.border}`}}>
+        <table style={{width:"100%",borderCollapse:"collapse"}}>
+          <thead>
+            <tr>
+              <th style={{...s.th,width:20}}>#</th>
+              <th style={{...s.th,textAlign:"left",paddingLeft:4}}>Equipo</th>
+              <th style={s.th}>PJ</th><th style={s.th}>G</th><th style={s.th}>E</th><th style={s.th}>P</th>
+              <th style={s.th}>DIF</th><th style={s.th}>PTS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {thirds.length===0
+              ?<tr><td colSpan={8} style={{...s.td(0),textAlign:"center",padding:"12px",color:C.textMuted}}>Sin resultados cargados aún</td></tr>
+              :thirds.map((row,i)=>{
+                const cl=i<8;
+                return(
+                  <tr key={row.group}>
+                    <td style={{...s.td(i),color:cl?C.green:C.textMuted,fontWeight:700}}>{i+1}</td>
+                    <td style={{...s.td(i),textAlign:"left",paddingLeft:4}}>
+                      <div style={{display:"flex",alignItems:"center",gap:5}}>
+                        <span style={{color:C.yellow,fontSize:10,fontWeight:700,minWidth:14}}>{row.group}</span>
+                        {cl&&<span style={{color:C.green,fontSize:9,fontWeight:700}}>▲</span>}
+                        <Flag team={row.team} size={13}/>
+                        <span style={{color:cl?C.text:C.textDim}}>{row.team}</span>
+                      </div>
+                    </td>
+                    <td style={s.td(i)}>{row.pj}</td><td style={s.td(i)}>{row.g}</td>
+                    <td style={s.td(i)}>{row.e}</td><td style={s.td(i)}>{row.p}</td>
+                    <td style={{...s.td(i),color:row.dg>0?C.green:row.dg<0?C.red:C.textDim,fontWeight:700}}>
+                      {row.dg>0?`+${row.dg}`:row.dg}
+                    </td>
+                    <td style={{...s.td(i),color:C.yellow,fontWeight:700}}>{row.pts}</td>
+                  </tr>
+                );
+              })
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function TablaTab({scores}){
+  const sorted=Object.entries(scores).sort((a,b)=>b[1]-a[1]);
+  return(
+    <div style={s.section}>
+      <div style={s.label}>TABLA DE POSICIONES</div>
+      <div style={{border:`1px solid ${C.border}`}}>
+        <table style={{width:"100%",borderCollapse:"collapse"}}>
+          <thead>
+            <tr>
+              <th style={{...s.th,width:24}}>#</th>
+              <th style={{...s.th,textAlign:"left",paddingLeft:6}}>Participante</th>
+              <th style={s.th}>PUNTOS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map(([name,pts],i)=>(
+              <tr key={name}>
+                <td style={{...s.td(i),fontWeight:700,color:i===0?C.yellow:C.textMuted}}>{i+1}</td>
+                <td style={{...s.td(i),textAlign:"left",paddingLeft:6}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{width:24,height:24,borderRadius:"50%",background:COLORS[PARTICIPANTS.indexOf(name)],display:"inline-flex",alignItems:"center",justifyContent:"center",color:"#000",fontSize:11,fontWeight:700,flexShrink:0}}>{name[0]}</span>
+                    <span style={{color:i===0?C.yellow:C.text,fontWeight:i===0?700:400}}>{name}</span>
+                    {i===0&&<span style={{color:C.yellow,fontSize:10,fontWeight:700}}>★ LÍDER</span>}
+                  </div>
+                </td>
+                <td style={{...s.td(i),color:C.yellow,fontWeight:700,fontSize:16}}>{pts}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{color:C.textMuted,fontSize:10,marginTop:8,textAlign:"center"}}>Exacto = +4 pts · Ganador/empate = +2 pts</div>
+    </div>
+  );
+}
