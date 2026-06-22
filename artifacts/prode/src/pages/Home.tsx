@@ -7,11 +7,9 @@ import { CalendarDatePicker } from "../components/CalendarDatePicker";
 import { GROUP_MATCHES, GROUPS, PARTICIPANTS, FORECASTS, COLORS } from "../data/constants";
 import { getGroupStandings, calcPts, calcBonusPoints } from "../lib/logic";
 
-// URL base de la API. En producción, el backend corre en otro dominio (Render),
-// así que usamos una variable de entorno para apuntar ahí.
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
-type Tab = "GRUPOS" | "POR_FECHA" | "TERCEROS" | "EXTRA_GRUPOS" | "TABLA";
+type Tab = "GRUPOS" | "POR_FECHA" | "EXTRA_GRUPOS" | "TABLA";
 
 export default function Home() {
   const [results, setResults] = useState<Record<string, [number, number]>>({});
@@ -82,11 +80,10 @@ export default function Home() {
     }).sort((a, b) => b.pts - a.pts);
   }, [results, isGroupStageComplete]);
 
-  const TABS: Tab[] = ["GRUPOS", "POR_FECHA", "TERCEROS", "EXTRA_GRUPOS", "TABLA"];
+  const TABS: Tab[] = ["GRUPOS", "POR_FECHA", "EXTRA_GRUPOS", "TABLA"];
   const TAB_LABELS: Record<Tab, string> = {
     GRUPOS: "Grupos",
     POR_FECHA: "Por Fecha",
-    TERCEROS: "Terceros",
     EXTRA_GRUPOS: "Extra grupos",
     TABLA: "Tabla",
   };
@@ -127,6 +124,7 @@ export default function Home() {
 
             {activeTab === "GRUPOS" && (
               <div className="space-y-6">
+                {/* Selector de grupo + botón Terceros */}
                 <div className="flex flex-wrap gap-2">
                   {Object.keys(GROUPS).map(g => (
                     <button
@@ -137,19 +135,77 @@ export default function Home() {
                       {g}
                     </button>
                   ))}
+                  <button
+                    onClick={() => setSelectedGroup("TERCEROS")}
+                    className={`px-3 h-10 rounded font-bold font-mono transition-all text-xs ${selectedGroup === "TERCEROS" ? 'bg-primary text-primary-foreground shadow-[0_0_15px_rgba(255,215,0,0.3)]' : 'bg-card text-muted-foreground border border-border hover:bg-white/5 hover:text-white'}`}
+                  >
+                    3°
+                  </button>
                 </div>
-                <div className="space-y-4">
-                  <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Posiciones Grupo {selectedGroup}</h2>
-                  <StandingsTable teams={groupStandings} />
-                </div>
-                <div className="space-y-4 pt-4">
-                  <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Partidos</h2>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {GROUP_MATCHES.filter(m => m.group === selectedGroup).map(m => (
-                      <MatchCard key={m.id} match={m} realResult={results[m.id]} allResults={results} />
-                    ))}
+
+                {/* Vista de grupo */}
+                {selectedGroup !== "TERCEROS" && (
+                  <>
+                    <div className="space-y-4">
+                      <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Posiciones Grupo {selectedGroup}</h2>
+                      <StandingsTable teams={groupStandings} />
+                    </div>
+                    <div className="space-y-4 pt-4">
+                      <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Partidos</h2>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {GROUP_MATCHES.filter(m => m.group === selectedGroup).map(m => (
+                          <MatchCard key={m.id} match={m} realResult={results[m.id]} allResults={results} />
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Vista de terceros */}
+                {selectedGroup === "TERCEROS" && (
+                  <div className="space-y-6">
+                    <div className="bg-primary/10 border border-primary/30 p-4 rounded-md text-sm text-primary">
+                      <p className="font-bold mb-1">Clasificación de Terceros</p>
+                      <p>Los 8 mejores terceros de la fase de grupos clasifican a 16avos de final.</p>
+                    </div>
+                    <div className="overflow-x-auto bg-card border border-border rounded-md shadow-sm">
+                      <table className="w-full text-sm text-left whitespace-nowrap">
+                        <thead className="text-xs text-muted-foreground bg-black/40 border-b border-border font-mono uppercase">
+                          <tr>
+                            <th className="px-3 py-2 text-center w-8">#</th>
+                            <th className="px-3 py-2">Equipo (Grupo)</th>
+                            <th className="px-2 py-2 text-center">PJ</th>
+                            <th className="px-2 py-2 text-center">G</th>
+                            <th className="px-2 py-2 text-center hidden sm:table-cell">E</th>
+                            <th className="px-2 py-2 text-center hidden sm:table-cell">P</th>
+                            <th className="px-2 py-2 text-center hidden md:table-cell">GF</th>
+                            <th className="px-2 py-2 text-center hidden md:table-cell">GC</th>
+                            <th className="px-2 py-2 text-center">DIF</th>
+                            <th className="px-3 py-2 text-center text-primary font-bold">PTS</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/50">
+                          {tercerosStandings.map((team, idx) => (
+                            <tr key={team.name} className={`hover:bg-white/5 transition-colors ${idx < 8 ? 'bg-primary/5' : 'opacity-50 grayscale'}`}>
+                              <td className="px-3 py-2 text-center font-mono">
+                                {idx + 1}{idx < 8 && <span className="text-primary ml-1 text-[10px]">▲</span>}
+                              </td>
+                              <td className="px-3 py-2 font-medium">{team.name}</td>
+                              <td className="px-2 py-2 text-center text-muted-foreground">{team.pj}</td>
+                              <td className="px-2 py-2 text-center text-muted-foreground">{team.g}</td>
+                              <td className="px-2 py-2 text-center text-muted-foreground hidden sm:table-cell">{team.e}</td>
+                              <td className="px-2 py-2 text-center text-muted-foreground hidden sm:table-cell">{team.p}</td>
+                              <td className="px-2 py-2 text-center text-muted-foreground hidden md:table-cell">{team.gf}</td>
+                              <td className="px-2 py-2 text-center text-muted-foreground hidden md:table-cell">{team.gc}</td>
+                              <td className="px-2 py-2 text-center text-muted-foreground">{team.dif > 0 ? `+${team.dif}` : team.dif}</td>
+                              <td className="px-3 py-2 text-center font-bold text-white bg-black/20">{team.pts}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
 
@@ -165,9 +221,7 @@ export default function Home() {
                     <p className="text-muted-foreground">Acertar el marcador exacto. Se suma junto al Art. 16 (+4 pts en total).</p>
                   </div>
                 </div>
-
                 <CalendarDatePicker dates={dates} selected={selectedDate} onSelect={setSelectedDate} />
-
                 <div className="space-y-4">
                   <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Partidos — {selectedDate}</h2>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -177,53 +231,6 @@ export default function Home() {
                         <MatchCard key={m.id} match={m} realResult={results[m.id]} allResults={results} />
                       ))}
                   </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === "TERCEROS" && (
-              <div className="space-y-6">
-                <div className="bg-primary/10 border border-primary/30 p-4 rounded-md text-sm text-primary mb-6 flex items-start gap-3">
-                  <div>
-                    <p className="font-bold mb-1">Clasificación de Terceros</p>
-                    <p>Los 8 mejores terceros de la fase de grupos clasifican a 16avos de final.</p>
-                  </div>
-                </div>
-                <div className="overflow-x-auto bg-card border border-border rounded-md shadow-sm">
-                  <table className="w-full text-sm text-left whitespace-nowrap">
-                    <thead className="text-xs text-muted-foreground bg-black/40 border-b border-border font-mono uppercase">
-                      <tr>
-                        <th className="px-3 py-2 text-center w-8">#</th>
-                        <th className="px-3 py-2">Equipo (Grupo)</th>
-                        <th className="px-2 py-2 text-center">PJ</th>
-                        <th className="px-2 py-2 text-center">G</th>
-                        <th className="px-2 py-2 text-center hidden sm:table-cell">E</th>
-                        <th className="px-2 py-2 text-center hidden sm:table-cell">P</th>
-                        <th className="px-2 py-2 text-center hidden md:table-cell">GF</th>
-                        <th className="px-2 py-2 text-center hidden md:table-cell">GC</th>
-                        <th className="px-2 py-2 text-center">DIF</th>
-                        <th className="px-3 py-2 text-center text-primary font-bold">PTS</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/50">
-                      {tercerosStandings.map((team, idx) => (
-                        <tr key={team.name} className={`hover:bg-white/5 transition-colors ${idx < 8 ? 'bg-primary/5' : 'opacity-50 grayscale'}`}>
-                          <td className="px-3 py-2 text-center font-mono">
-                            {idx + 1}{idx < 8 && <span className="text-primary ml-1 text-[10px]">▲</span>}
-                          </td>
-                          <td className="px-3 py-2 font-medium">{team.name}</td>
-                          <td className="px-2 py-2 text-center text-muted-foreground">{team.pj}</td>
-                          <td className="px-2 py-2 text-center text-muted-foreground">{team.g}</td>
-                          <td className="px-2 py-2 text-center text-muted-foreground hidden sm:table-cell">{team.e}</td>
-                          <td className="px-2 py-2 text-center text-muted-foreground hidden sm:table-cell">{team.p}</td>
-                          <td className="px-2 py-2 text-center text-muted-foreground hidden md:table-cell">{team.gf}</td>
-                          <td className="px-2 py-2 text-center text-muted-foreground hidden md:table-cell">{team.gc}</td>
-                          <td className="px-2 py-2 text-center text-muted-foreground">{team.dif > 0 ? `+${team.dif}` : team.dif}</td>
-                          <td className="px-3 py-2 text-center font-bold text-white bg-black/20">{team.pts}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
                 </div>
               </div>
             )}
