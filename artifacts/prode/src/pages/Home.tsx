@@ -9,12 +9,12 @@ import { getGroupStandings, calcPts, calcBonusPoints } from "../lib/logic";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
-type Tab = "POR_FECHA" | "GRUPOS" | "EXTRA_GRUPOS" | "TABLA" | "REGLAS";
+type Tab = "PRINCIPAL" | "GRUPOS" | "EXTRA_GRUPOS" | "REGLAS";
 
 export default function Home() {
   const [results, setResults] = useState<Record<string, [number, number]>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<Tab>("POR_FECHA");
+  const [activeTab, setActiveTab] = useState<Tab>("PRINCIPAL");
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<string>("A");
 
@@ -84,10 +84,9 @@ export default function Home() {
   }, [results, isGroupStageComplete]);
 
   const TAB_LABELS: Record<Tab, string> = {
-    POR_FECHA: "Por Fecha",
+    PRINCIPAL: "Principal",
     GRUPOS: "Grupos",
     EXTRA_GRUPOS: "Extra grupos",
-    TABLA: "Tabla",
     REGLAS: "Reglas",
   };
 
@@ -123,7 +122,7 @@ export default function Home() {
             className="absolute top-[73px] right-4 bg-card border border-border rounded-lg shadow-2xl overflow-hidden w-52"
             onClick={e => e.stopPropagation()}
           >
-            {(["POR_FECHA", "GRUPOS", "EXTRA_GRUPOS", "TABLA", "REGLAS"] as Tab[]).map(tab => (
+            {(["PRINCIPAL", "GRUPOS", "EXTRA_GRUPOS", "REGLAS"] as Tab[]).map(tab => (
               <button
                 key={tab}
                 onClick={() => navigateTo(tab)}
@@ -150,7 +149,7 @@ export default function Home() {
         ) : (
           <div key={activeTab} className="flex flex-col gap-6">
 
-            {activeTab === "POR_FECHA" && (
+            {activeTab === "PRINCIPAL" && (
               <div className="space-y-6">
                 {/* Tabla de ranking compacta */}
                 <div className="bg-card border border-border rounded-lg overflow-hidden">
@@ -275,40 +274,9 @@ export default function Home() {
 
             {activeTab === "EXTRA_GRUPOS" && <BonusTab results={results} />}
 
-            {activeTab === "TABLA" && (
-              <div className="grid grid-cols-1 gap-4 max-w-2xl mx-auto">
-                {participantLeaderboard.map((p, idx) => (
-                  <div key={p.name} className={`bg-card border ${idx === 0 ? 'border-primary shadow-[0_0_20px_rgba(255,215,0,0.15)]' : 'border-border'} rounded-lg p-4`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg font-mono ${idx === 0 ? 'bg-primary text-primary-foreground' : 'bg-black/30 text-muted-foreground'}`}>
-                          {idx + 1}
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: p.color }} />
-                          <span className="text-xl font-bold uppercase">{p.name}</span>
-                          {idx === 0 && <span className="bg-primary/20 text-primary text-[10px] uppercase font-black px-2 py-0.5 rounded tracking-widest">★ LÍDER</span>}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-3xl font-black tabular-nums tracking-tighter">
-                          {p.pts} <span className="text-sm font-normal text-muted-foreground tracking-normal">PTS</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-3 pt-3 border-t border-border/50 flex gap-4 text-xs text-muted-foreground font-mono">
-                      <span>Partidos: <span className="text-white font-bold">{p.matchPts}</span></span>
-                      <span>Extra grupos: <span className={p.bonus > 0 ? "text-green-400 font-bold" : "text-white font-bold"}>+{p.bonus}</span></span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
             {activeTab === "REGLAS" && (
               <div className="space-y-4 max-w-2xl mx-auto">
                 <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Reglas de puntuación</h2>
-
                 <div className="bg-card border border-border rounded-lg overflow-hidden">
                   <div className="bg-black/30 px-4 py-2 border-b border-border">
                     <p className="text-primary font-bold uppercase tracking-wider text-sm">Resultados de partidos</p>
@@ -330,7 +298,6 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-
                 <div className="bg-card border border-border rounded-lg overflow-hidden">
                   <div className="bg-black/30 px-4 py-2 border-b border-border">
                     <p className="text-primary font-bold uppercase tracking-wider text-sm">Extra grupos — Solo al finalizar la fase</p>
