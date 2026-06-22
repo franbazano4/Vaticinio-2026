@@ -104,7 +104,6 @@ export default function Home() {
           <p className="text-primary text-sm font-medium tracking-wide">Copa del Mundo 2026</p>
         </div>
         <div className="flex items-center gap-3">
-          <GlobeButton onFetched={fetchResultsFromServer} apiBase={API_BASE} />
           {/* Hamburger menu button */}
           <button
             onClick={() => setMenuOpen(v => !v)}
@@ -143,11 +142,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* Current tab indicator */}
-      <div className="bg-card border-b border-border px-4 py-2 flex items-center gap-2">
-        <span className="text-xs text-muted-foreground uppercase tracking-wider">Viendo:</span>
-        <span className="text-xs font-bold text-primary uppercase tracking-wider">{TAB_LABELS[activeTab]}</span>
-      </div>
+
 
       <main className="flex-1 p-4 max-w-5xl mx-auto w-full">
         {isLoading && Object.keys(results).length === 0 ? (
