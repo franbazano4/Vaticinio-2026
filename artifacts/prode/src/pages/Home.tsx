@@ -154,7 +154,6 @@ export default function Home() {
               <div className="space-y-6">
                 <CalendarDatePicker dates={dates} selected={selectedDate} onSelect={setSelectedDate} />
                 <div className="space-y-4">
-                  <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Partidos — {selectedDate}</h2>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {[...GROUP_MATCHES.filter(m => m.fecha === selectedDate)]
                       .sort((a, b) => a.hora.localeCompare(b.hora))
