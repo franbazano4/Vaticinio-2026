@@ -152,15 +152,33 @@ export default function Home() {
 
             {activeTab === "POR_FECHA" && (
               <div className="space-y-6">
-                <CalendarDatePicker dates={dates} selected={selectedDate} onSelect={setSelectedDate} />
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {[...GROUP_MATCHES.filter(m => m.fecha === selectedDate)]
-                      .sort((a, b) => a.hora.localeCompare(b.hora))
-                      .map(m => (
-                        <MatchCard key={m.id} match={m} realResult={results[m.id]} allResults={results} />
-                      ))}
+                {/* Tabla de ranking compacta */}
+                <div className="bg-card border border-border rounded-lg overflow-hidden">
+                  <div className="bg-black/30 px-4 py-2 border-b border-border">
+                    <p className="text-primary font-bold uppercase tracking-wider text-sm">Tabla de posiciones</p>
                   </div>
+                  <div className="divide-y divide-border/50">
+                    {participantLeaderboard.map((p, idx) => (
+                      <div key={p.name} className={`flex items-center gap-3 px-4 py-2.5 ${idx === 0 ? "bg-primary/5" : ""}`}>
+                        <span className={`w-6 text-center font-black font-mono text-sm ${idx === 0 ? "text-primary" : "text-muted-foreground"}`}>{idx + 1}</span>
+                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
+                        <span className={`flex-1 font-bold uppercase text-sm ${idx === 0 ? "text-white" : "text-muted-foreground"}`}>{p.name}</span>
+                        {idx === 0 && <span className="text-primary text-[10px] font-black">★ LÍDER</span>}
+                        <span className={`font-black text-lg tabular-nums ${idx === 0 ? "text-primary" : "text-white"}`}>{p.pts}</span>
+                        <span className="text-muted-foreground text-xs">pts</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Calendario desplegable + partidos */}
+                <CalendarDatePicker dates={dates} selected={selectedDate} onSelect={setSelectedDate} />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {[...GROUP_MATCHES.filter(m => m.fecha === selectedDate)]
+                    .sort((a, b) => a.hora.localeCompare(b.hora))
+                    .map(m => (
+                      <MatchCard key={m.id} match={m} realResult={results[m.id]} allResults={results} />
+                    ))}
                 </div>
               </div>
             )}
