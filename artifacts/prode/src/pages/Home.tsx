@@ -9,12 +9,14 @@ import { getGroupStandings, calcPts, calcBonusPoints } from "../lib/logic";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
-type Tab = "PRINCIPAL" | "GRUPOS" | "EXTRA_GRUPOS" | "REGLAS";
+type Tab = "PRINCIPAL" | "GRUPOS" | "REGLAS";
+type GruposSubTab = "CLASIFICACION" | "EXTRA_GRUPOS";
 
 export default function Home() {
   const [results, setResults] = useState<Record<string, [number, number]>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("PRINCIPAL");
+  const [gruposSubTab, setGruposSubTab] = useState<GruposSubTab>("CLASIFICACION");
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<string>("A");
 
@@ -86,7 +88,6 @@ export default function Home() {
   const TAB_LABELS: Record<Tab, string> = {
     PRINCIPAL: "Principal",
     GRUPOS: "Grupos",
-    EXTRA_GRUPOS: "Extra grupos",
     REGLAS: "Reglas",
   };
 
@@ -122,7 +123,7 @@ export default function Home() {
             className="absolute top-[73px] right-4 bg-card border border-border rounded-lg shadow-2xl overflow-hidden w-52"
             onClick={e => e.stopPropagation()}
           >
-            {(["PRINCIPAL", "GRUPOS", "EXTRA_GRUPOS", "REGLAS"] as Tab[]).map(tab => (
+            {(["PRINCIPAL", "GRUPOS", "REGLAS"] as Tab[]).map(tab => (
               <button
                 key={tab}
                 onClick={() => navigateTo(tab)}
@@ -151,7 +152,6 @@ export default function Home() {
 
             {activeTab === "PRINCIPAL" && (
               <div className="space-y-6">
-                {/* Tabla de ranking compacta */}
                 <div className="bg-card border border-border rounded-lg overflow-hidden">
                   <div className="bg-black/30 px-4 py-2 border-b border-border">
                     <p className="text-primary font-bold uppercase tracking-wider text-sm">Tabla de posiciones</p>
@@ -169,8 +169,6 @@ export default function Home() {
                     ))}
                   </div>
                 </div>
-
-                {/* Calendario desplegable + partidos */}
                 <CalendarDatePicker dates={dates} selected={selectedDate} onSelect={setSelectedDate} />
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {[...GROUP_MATCHES.filter(m => m.fecha === selectedDate)]
@@ -184,95 +182,113 @@ export default function Home() {
 
             {activeTab === "GRUPOS" && (
               <div className="space-y-6">
-                <div className="flex flex-wrap gap-2">
-                  {Object.keys(GROUPS).map(g => (
+                {/* Sub-tabs: Clasificación y Extra grupos */}
+                <div className="flex border-b border-border">
+                  {(["CLASIFICACION", "EXTRA_GRUPOS"] as GruposSubTab[]).map(sub => (
                     <button
-                      key={g}
-                      onClick={() => setSelectedGroup(g)}
-                      className={`w-10 h-10 rounded font-bold font-mono transition-all ${selectedGroup === g ? 'bg-primary text-primary-foreground shadow-[0_0_15px_rgba(255,215,0,0.3)]' : 'bg-card text-muted-foreground border border-border hover:bg-white/5 hover:text-white'}`}
+                      key={sub}
+                      onClick={() => setGruposSubTab(sub)}
+                      className={`px-4 py-3 text-sm font-bold tracking-wider uppercase transition-colors relative whitespace-nowrap ${
+                        gruposSubTab === sub ? 'text-primary' : 'text-muted-foreground hover:text-white'
+                      }`}
                     >
-                      {g}
+                      {sub === "CLASIFICACION" ? "Clasificación" : "Extra grupos"}
+                      {gruposSubTab === sub && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
                     </button>
                   ))}
-                  <button
-                    onClick={() => setSelectedGroup("TERCEROS")}
-                    className={`px-3 h-10 rounded font-bold font-mono transition-all text-xs ${selectedGroup === "TERCEROS" ? 'bg-primary text-primary-foreground shadow-[0_0_15px_rgba(255,215,0,0.3)]' : 'bg-card text-muted-foreground border border-border hover:bg-white/5 hover:text-white'}`}
-                  >
-                    3°
-                  </button>
                 </div>
 
-                {selectedGroup !== "TERCEROS" && (
-                  <>
-                    <div className="space-y-4">
-                      <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Posiciones Grupo {selectedGroup}</h2>
-                      <StandingsTable teams={groupStandings} />
-                    </div>
-                    <div className="space-y-4 pt-4">
-                      <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Partidos</h2>
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        {GROUP_MATCHES.filter(m => m.group === selectedGroup).map(m => (
-                          <MatchCard key={m.id} match={m} realResult={results[m.id]} allResults={results} />
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {selectedGroup === "TERCEROS" && (
+                {/* Clasificación */}
+                {gruposSubTab === "CLASIFICACION" && (
                   <div className="space-y-6">
-                    <div className="bg-primary/10 border border-primary/30 p-4 rounded-md text-sm text-primary">
-                      <p className="font-bold mb-1">Clasificación de Terceros</p>
-                      <p>Los 8 mejores terceros de la fase de grupos clasifican a 16avos de final.</p>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.keys(GROUPS).map(g => (
+                        <button
+                          key={g}
+                          onClick={() => setSelectedGroup(g)}
+                          className={`w-10 h-10 rounded font-bold font-mono transition-all ${selectedGroup === g ? 'bg-primary text-primary-foreground shadow-[0_0_15px_rgba(255,215,0,0.3)]' : 'bg-card text-muted-foreground border border-border hover:bg-white/5 hover:text-white'}`}
+                        >
+                          {g}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => setSelectedGroup("TERCEROS")}
+                        className={`px-3 h-10 rounded font-bold font-mono transition-all text-xs ${selectedGroup === "TERCEROS" ? 'bg-primary text-primary-foreground shadow-[0_0_15px_rgba(255,215,0,0.3)]' : 'bg-card text-muted-foreground border border-border hover:bg-white/5 hover:text-white'}`}
+                      >
+                        3°
+                      </button>
                     </div>
-                    <div className="overflow-x-auto bg-card border border-border rounded-md shadow-sm">
-                      <table className="w-full text-sm text-left whitespace-nowrap">
-                        <thead className="text-xs text-muted-foreground bg-black/40 border-b border-border font-mono uppercase">
-                          <tr>
-                            <th className="px-3 py-2 text-center w-8">#</th>
-                            <th className="px-3 py-2">Equipo (Grupo)</th>
-                            <th className="px-2 py-2 text-center">PJ</th>
-                            <th className="px-2 py-2 text-center">G</th>
-                            <th className="px-2 py-2 text-center hidden sm:table-cell">E</th>
-                            <th className="px-2 py-2 text-center hidden sm:table-cell">P</th>
-                            <th className="px-2 py-2 text-center hidden md:table-cell">GF</th>
-                            <th className="px-2 py-2 text-center hidden md:table-cell">GC</th>
-                            <th className="px-2 py-2 text-center">DIF</th>
-                            <th className="px-3 py-2 text-center text-primary font-bold">PTS</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border/50">
-                          {tercerosStandings.length === 0 ? (
-                            <tr>
-                              <td colSpan={10} className="px-3 py-6 text-center text-muted-foreground text-sm italic">
-                                Sin resultados cargados aún
-                              </td>
-                            </tr>
-                          ) : tercerosStandings.map((team, idx) => (
-                            <tr key={team.name} className={`hover:bg-white/5 transition-colors ${idx < 8 ? 'bg-primary/5' : 'opacity-50 grayscale'}`}>
-                              <td className="px-3 py-2 text-center font-mono">
-                                {idx + 1}{idx < 8 && <span className="text-primary ml-1 text-[10px]">▲</span>}
-                              </td>
-                              <td className="px-3 py-2 font-medium">{team.name}</td>
-                              <td className="px-2 py-2 text-center text-muted-foreground">{team.pj}</td>
-                              <td className="px-2 py-2 text-center text-muted-foreground">{team.g}</td>
-                              <td className="px-2 py-2 text-center text-muted-foreground hidden sm:table-cell">{team.e}</td>
-                              <td className="px-2 py-2 text-center text-muted-foreground hidden sm:table-cell">{team.p}</td>
-                              <td className="px-2 py-2 text-center text-muted-foreground hidden md:table-cell">{team.gf}</td>
-                              <td className="px-2 py-2 text-center text-muted-foreground hidden md:table-cell">{team.gc}</td>
-                              <td className="px-2 py-2 text-center text-muted-foreground">{team.dif > 0 ? `+${team.dif}` : team.dif}</td>
-                              <td className="px-3 py-2 text-center font-bold text-white bg-black/20">{team.pts}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+
+                    {selectedGroup !== "TERCEROS" && (
+                      <>
+                        <div className="space-y-4">
+                          <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Posiciones Grupo {selectedGroup}</h2>
+                          <StandingsTable teams={groupStandings} />
+                        </div>
+                        <div className="space-y-4 pt-4">
+                          <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Partidos</h2>
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            {GROUP_MATCHES.filter(m => m.group === selectedGroup).map(m => (
+                              <MatchCard key={m.id} match={m} realResult={results[m.id]} allResults={results} />
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {selectedGroup === "TERCEROS" && (
+                      <div className="space-y-6">
+                        <div className="bg-primary/10 border border-primary/30 p-4 rounded-md text-sm text-primary">
+                          <p className="font-bold mb-1">Clasificación de Terceros</p>
+                          <p>Los 8 mejores terceros de la fase de grupos clasifican a 16avos de final.</p>
+                        </div>
+                        <div className="overflow-x-auto bg-card border border-border rounded-md shadow-sm">
+                          <table className="w-full text-sm text-left whitespace-nowrap">
+                            <thead className="text-xs text-muted-foreground bg-black/40 border-b border-border font-mono uppercase">
+                              <tr>
+                                <th className="px-3 py-2 text-center w-8">#</th>
+                                <th className="px-3 py-2">Equipo (Grupo)</th>
+                                <th className="px-2 py-2 text-center">PJ</th>
+                                <th className="px-2 py-2 text-center">G</th>
+                                <th className="px-2 py-2 text-center hidden sm:table-cell">E</th>
+                                <th className="px-2 py-2 text-center hidden sm:table-cell">P</th>
+                                <th className="px-2 py-2 text-center hidden md:table-cell">GF</th>
+                                <th className="px-2 py-2 text-center hidden md:table-cell">GC</th>
+                                <th className="px-2 py-2 text-center">DIF</th>
+                                <th className="px-3 py-2 text-center text-primary font-bold">PTS</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border/50">
+                              {tercerosStandings.length === 0 ? (
+                                <tr>
+                                  <td colSpan={10} className="px-3 py-6 text-center text-muted-foreground text-sm italic">Sin resultados cargados aún</td>
+                                </tr>
+                              ) : tercerosStandings.map((team, idx) => (
+                                <tr key={team.name} className={`hover:bg-white/5 transition-colors ${idx < 8 ? 'bg-primary/5' : 'opacity-50 grayscale'}`}>
+                                  <td className="px-3 py-2 text-center font-mono">{idx + 1}{idx < 8 && <span className="text-primary ml-1 text-[10px]">▲</span>}</td>
+                                  <td className="px-3 py-2 font-medium">{team.name}</td>
+                                  <td className="px-2 py-2 text-center text-muted-foreground">{team.pj}</td>
+                                  <td className="px-2 py-2 text-center text-muted-foreground">{team.g}</td>
+                                  <td className="px-2 py-2 text-center text-muted-foreground hidden sm:table-cell">{team.e}</td>
+                                  <td className="px-2 py-2 text-center text-muted-foreground hidden sm:table-cell">{team.p}</td>
+                                  <td className="px-2 py-2 text-center text-muted-foreground hidden md:table-cell">{team.gf}</td>
+                                  <td className="px-2 py-2 text-center text-muted-foreground hidden md:table-cell">{team.gc}</td>
+                                  <td className="px-2 py-2 text-center text-muted-foreground">{team.dif > 0 ? `+${team.dif}` : team.dif}</td>
+                                  <td className="px-3 py-2 text-center font-bold text-white bg-black/20">{team.pts}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
+
+                {/* Extra grupos */}
+                {gruposSubTab === "EXTRA_GRUPOS" && <BonusTab results={results} />}
               </div>
             )}
-
-            {activeTab === "EXTRA_GRUPOS" && <BonusTab results={results} />}
 
             {activeTab === "REGLAS" && (
               <div className="space-y-4 max-w-2xl mx-auto">
