@@ -8,7 +8,6 @@ interface CalendarDatePickerProps {
 
 const DAY_HEADERS = ["L","M","X","J","V","S","D"];
 const MONTH_NAMES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-const MONTH_FULL = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
 export function CalendarDatePicker({ dates, selected, onSelect }: CalendarDatePickerProps) {
   const [open, setOpen] = useState(false);
@@ -18,9 +17,6 @@ export function CalendarDatePicker({ dates, selected, onSelect }: CalendarDatePi
     const [dd, mm] = s.split("/");
     return new Date(2026, parseInt(mm) - 1, parseInt(dd));
   };
-
-  const selectedDate = parseToDate(selected);
-  const selectedLabel = `${String(selectedDate.getDate()).padStart(2,"0")} ${MONTH_FULL[selectedDate.getMonth()]}`;
 
   const today = new Date();
   const todayStr = `${String(today.getDate()).padStart(2,"0")}/${String(today.getMonth()+1).padStart(2,"0")}`;
@@ -59,8 +55,7 @@ export function CalendarDatePicker({ dates, selected, onSelect }: CalendarDatePi
             : "bg-card border-border text-white hover:bg-white/5"
           }`}
       >
-        <span className="text-lg">📅</span>
-        <span className="font-bold text-sm">{selectedLabel}</span>
+        <span className="font-bold text-sm">Partidos — {selected}</span>
         <span className={`ml-auto text-xs transition-transform ${open ? "rotate-180" : ""}`}>▼</span>
       </button>
 
