@@ -9,11 +9,14 @@ import { getGroupStandings, calcPts, calcBonusPoints } from "../lib/logic";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
-type Tab = "GRUPOS" | "POR_FECHA" | "EXTRA_GRUPOS" | "TABLA";
+type Tab = "POR_FECHA" | "GRUPOS" | "EXTRA_GRUPOS" | "TABLA";
 
 export default function Home() {
   const [results, setResults] = useState<Record<string, [number, number]>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<Tab>("POR_FECHA");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<string>("A");
 
   const fetchResultsFromServer = useCallback(async () => {
     try {
@@ -34,9 +37,6 @@ export default function Home() {
     const interval = setInterval(fetchResultsFromServer, 30000);
     return () => clearInterval(interval);
   }, [fetchResultsFromServer]);
-
-  const [activeTab, setActiveTab] = useState<Tab>("GRUPOS");
-  const [selectedGroup, setSelectedGroup] = useState<string>("A");
 
   const dates = useMemo(() => Array.from(new Set(GROUP_MATCHES.map(m => m.fecha))).sort(), []);
   const [selectedDate, setSelectedDate] = useState<string>(() => {
@@ -83,37 +83,70 @@ export default function Home() {
     }).sort((a, b) => b.pts - a.pts);
   }, [results, isGroupStageComplete]);
 
-  const TABS: Tab[] = ["GRUPOS", "POR_FECHA", "EXTRA_GRUPOS", "TABLA"];
   const TAB_LABELS: Record<Tab, string> = {
-    GRUPOS: "Grupos",
     POR_FECHA: "Por Fecha",
+    GRUPOS: "Grupos",
     EXTRA_GRUPOS: "Extra grupos",
     TABLA: "Tabla",
   };
 
+  const navigateTo = (tab: Tab) => {
+    setActiveTab(tab);
+    setMenuOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
+      {/* Header */}
       <header className="bg-card border-b border-border p-4 sticky top-0 z-20 flex justify-between items-center shadow-md">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-white uppercase">Vaticinio de los Pronósticos Deportivos</h1>
           <p className="text-primary text-sm font-medium tracking-wide">Copa del Mundo 2026</p>
         </div>
-        <GlobeButton onFetched={fetchResultsFromServer} apiBase={API_BASE} />
+        <div className="flex items-center gap-3">
+          <GlobeButton onFetched={fetchResultsFromServer} apiBase={API_BASE} />
+          {/* Hamburger menu button */}
+          <button
+            onClick={() => setMenuOpen(v => !v)}
+            className="flex flex-col justify-center items-center gap-1.5 w-10 h-10 rounded-md hover:bg-white/10 transition-colors"
+            aria-label="Menú"
+          >
+            <span className={`block w-5 h-0.5 bg-white transition-all ${menuOpen ? 'rotate-45 translate-y-2' : ''}`} />
+            <span className={`block w-5 h-0.5 bg-white transition-all ${menuOpen ? 'opacity-0' : ''}`} />
+            <span className={`block w-5 h-0.5 bg-white transition-all ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+          </button>
+        </div>
       </header>
 
-      <div className="bg-card border-b border-border sticky top-[76px] z-10">
-        <div className="max-w-5xl mx-auto px-4 flex gap-1 overflow-x-auto no-scrollbar">
-          {TABS.map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-3 text-sm font-bold tracking-wider uppercase transition-colors relative whitespace-nowrap ${activeTab === tab ? 'text-primary' : 'text-muted-foreground hover:text-white'}`}
-            >
-              {TAB_LABELS[tab]}
-              {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
-            </button>
-          ))}
+      {/* Dropdown menu */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)}>
+          <div
+            className="absolute top-[73px] right-4 bg-card border border-border rounded-lg shadow-2xl overflow-hidden w-52"
+            onClick={e => e.stopPropagation()}
+          >
+            {(["POR_FECHA", "GRUPOS", "EXTRA_GRUPOS", "TABLA"] as Tab[]).map(tab => (
+              <button
+                key={tab}
+                onClick={() => navigateTo(tab)}
+                className={`w-full text-left px-5 py-3.5 text-sm font-bold uppercase tracking-wider transition-colors flex items-center justify-between ${
+                  activeTab === tab
+                    ? "text-primary bg-primary/10 border-l-2 border-primary"
+                    : "text-muted-foreground hover:text-white hover:bg-white/5"
+                }`}
+              >
+                {TAB_LABELS[tab]}
+                {activeTab === tab && <span className="text-primary text-xs">●</span>}
+              </button>
+            ))}
+          </div>
         </div>
+      )}
+
+      {/* Current tab indicator */}
+      <div className="bg-card border-b border-border px-4 py-2 flex items-center gap-2">
+        <span className="text-xs text-muted-foreground uppercase tracking-wider">Viendo:</span>
+        <span className="text-xs font-bold text-primary uppercase tracking-wider">{TAB_LABELS[activeTab]}</span>
       </div>
 
       <main className="flex-1 p-4 max-w-5xl mx-auto w-full">
@@ -123,11 +156,38 @@ export default function Home() {
             CARGANDO DATOS...
           </div>
         ) : (
-          <div key={activeTab} className="flex flex-col gap-6 animate-fadein">
+          <div key={activeTab} className="flex flex-col gap-6">
 
+            {/* POR FECHA — pantalla principal */}
+            {activeTab === "POR_FECHA" && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="bg-card border border-border rounded-md p-3">
+                    <p className="text-yellow-400 font-bold uppercase tracking-wider mb-1">Art. 16 · +2 pts</p>
+                    <p className="text-muted-foreground">Acertar el resultado (ganador o empate) sin importar el marcador exacto.</p>
+                  </div>
+                  <div className="bg-card border border-border rounded-md p-3">
+                    <p className="text-green-400 font-bold uppercase tracking-wider mb-1">Art. 17 · +2 pts adicionales</p>
+                    <p className="text-muted-foreground">Acertar el marcador exacto. Se suma junto al Art. 16 (+4 pts en total).</p>
+                  </div>
+                </div>
+                <CalendarDatePicker dates={dates} selected={selectedDate} onSelect={setSelectedDate} />
+                <div className="space-y-4">
+                  <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Partidos — {selectedDate}</h2>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {[...GROUP_MATCHES.filter(m => m.fecha === selectedDate)]
+                      .sort((a, b) => a.hora.localeCompare(b.hora))
+                      .map(m => (
+                        <MatchCard key={m.id} match={m} realResult={results[m.id]} allResults={results} />
+                      ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* GRUPOS */}
             {activeTab === "GRUPOS" && (
               <div className="space-y-6">
-                {/* Selector de grupo + botón Terceros */}
                 <div className="flex flex-wrap gap-2">
                   {Object.keys(GROUPS).map(g => (
                     <button
@@ -146,7 +206,6 @@ export default function Home() {
                   </button>
                 </div>
 
-                {/* Vista de grupo */}
                 {selectedGroup !== "TERCEROS" && (
                   <>
                     <div className="space-y-4">
@@ -164,7 +223,6 @@ export default function Home() {
                   </>
                 )}
 
-                {/* Vista de terceros */}
                 {selectedGroup === "TERCEROS" && (
                   <div className="space-y-6">
                     <div className="bg-primary/10 border border-primary/30 p-4 rounded-md text-sm text-primary">
@@ -215,32 +273,6 @@ export default function Home() {
                     </div>
                   </div>
                 )}
-              </div>
-            )}
-
-            {activeTab === "POR_FECHA" && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div className="bg-card border border-border rounded-md p-3">
-                    <p className="text-yellow-400 font-bold uppercase tracking-wider mb-1">Art. 16 · +2 pts</p>
-                    <p className="text-muted-foreground">Acertar el resultado (ganador o empate) sin importar el marcador exacto.</p>
-                  </div>
-                  <div className="bg-card border border-border rounded-md p-3">
-                    <p className="text-green-400 font-bold uppercase tracking-wider mb-1">Art. 17 · +2 pts adicionales</p>
-                    <p className="text-muted-foreground">Acertar el marcador exacto. Se suma junto al Art. 16 (+4 pts en total).</p>
-                  </div>
-                </div>
-                <CalendarDatePicker dates={dates} selected={selectedDate} onSelect={setSelectedDate} />
-                <div className="space-y-4">
-                  <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Partidos — {selectedDate}</h2>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {[...GROUP_MATCHES.filter(m => m.fecha === selectedDate)]
-                      .sort((a, b) => a.hora.localeCompare(b.hora))
-                      .map(m => (
-                        <MatchCard key={m.id} match={m} realResult={results[m.id]} allResults={results} />
-                      ))}
-                  </div>
-                </div>
               </div>
             )}
 
