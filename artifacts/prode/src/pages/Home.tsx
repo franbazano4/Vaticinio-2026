@@ -259,42 +259,32 @@ export default function Home() {
             {activeTab === "EXTRA_GRUPOS" && <BonusTab results={results} />}
 
             {activeTab === "TABLA" && (
-              <div className="space-y-6">
-                {!isGroupStageComplete && (
-                  <div className="bg-yellow-400/10 border border-yellow-400/30 rounded-md px-4 py-3 text-sm text-yellow-300 max-w-2xl mx-auto">
-                    <span className="font-bold">Fase de grupos en curso</span> — los puntos Extra grupos (Arts. 18, 19, 19bis) se sumarán al marcador cuando se jueguen los 72 partidos. Seguílos en <span className="font-bold">Extra grupos</span>.
-                  </div>
-                )}
-                <div className="grid grid-cols-1 gap-4 max-w-2xl mx-auto">
-                  {participantLeaderboard.map((p, idx) => (
-                    <div key={p.name} className={`bg-card border ${idx === 0 ? 'border-primary shadow-[0_0_20px_rgba(255,215,0,0.15)]' : 'border-border'} rounded-lg p-4`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg font-mono ${idx === 0 ? 'bg-primary text-primary-foreground' : 'bg-black/30 text-muted-foreground'}`}>
-                            {idx + 1}
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: p.color }} />
-                            <span className="text-xl font-bold uppercase">{p.name}</span>
-                            {idx === 0 && <span className="bg-primary/20 text-primary text-[10px] uppercase font-black px-2 py-0.5 rounded tracking-widest">★ LÍDER</span>}
-                          </div>
+              <div className="grid grid-cols-1 gap-4 max-w-2xl mx-auto">
+                {participantLeaderboard.map((p, idx) => (
+                  <div key={p.name} className={`bg-card border ${idx === 0 ? 'border-primary shadow-[0_0_20px_rgba(255,215,0,0.15)]' : 'border-border'} rounded-lg p-4`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg font-mono ${idx === 0 ? 'bg-primary text-primary-foreground' : 'bg-black/30 text-muted-foreground'}`}>
+                          {idx + 1}
                         </div>
-                        <div className="text-right">
-                          <div className="text-3xl font-black tabular-nums tracking-tighter">
-                            {p.pts} <span className="text-sm font-normal text-muted-foreground tracking-normal">PTS</span>
-                          </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: p.color }} />
+                          <span className="text-xl font-bold uppercase">{p.name}</span>
+                          {idx === 0 && <span className="bg-primary/20 text-primary text-[10px] uppercase font-black px-2 py-0.5 rounded tracking-widest">★ LÍDER</span>}
                         </div>
                       </div>
-                      <div className="mt-3 pt-3 border-t border-border/50 flex gap-4 text-xs text-muted-foreground font-mono">
-                        <span>Partidos: <span className="text-white font-bold">{p.matchPts}</span></span>
-                        {isGroupStageComplete
-                          ? <span>Extra grupos: <span className={p.bonus > 0 ? "text-green-400 font-bold" : "text-white font-bold"}>+{p.bonus}</span></span>
-                          : <span className="italic">Extra grupos: pendiente ({Object.keys(results).length}/72 partidos)</span>
-                        }
+                      <div className="text-right">
+                        <div className="text-3xl font-black tabular-nums tracking-tighter">
+                          {p.pts} <span className="text-sm font-normal text-muted-foreground tracking-normal">PTS</span>
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
+                    <div className="mt-3 pt-3 border-t border-border/50 flex gap-4 text-xs text-muted-foreground font-mono">
+                      <span>Partidos: <span className="text-white font-bold">{p.matchPts}</span></span>
+                      <span>Extra grupos: <span className={p.bonus > 0 ? "text-green-400 font-bold" : "text-white font-bold"}>+{p.bonus}</span></span>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -302,7 +292,6 @@ export default function Home() {
               <div className="space-y-4 max-w-2xl mx-auto">
                 <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Reglas de puntuación</h2>
 
-                {/* Resultados */}
                 <div className="bg-card border border-border rounded-lg overflow-hidden">
                   <div className="bg-black/30 px-4 py-2 border-b border-border">
                     <p className="text-primary font-bold uppercase tracking-wider text-sm">Resultados de partidos</p>
@@ -325,7 +314,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Extra grupos */}
                 <div className="bg-card border border-border rounded-lg overflow-hidden">
                   <div className="bg-black/30 px-4 py-2 border-b border-border">
                     <p className="text-primary font-bold uppercase tracking-wider text-sm">Extra grupos — Solo al finalizar la fase</p>
