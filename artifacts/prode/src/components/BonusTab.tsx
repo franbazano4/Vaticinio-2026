@@ -63,19 +63,14 @@ export function BonusTab({ results }: Props) {
     const playerTotals = PARTICIPANTS.map((p, i) => {
       let art18pts = 0;
       const pred = playerPreds[i].pred;
-
-      // Art. 18 — posición exacta
       actual.forEach((t, pos) => {
         if (pred[pos] && pred[pos].name === t.name) art18pts++;
       });
-
-      // Art. 19 — clasificados (1° y 2°) de este grupo
       let qualHits = 0;
       [0, 1].forEach(pos => {
         if (pred[pos] && actualQ.has(pred[pos].name)) qualHits++;
       });
       const art19pts = qualHits === 2 ? 5 : qualHits === 1 ? 2 : 0;
-
       return { name: p, art18pts, art19pts };
     });
 
@@ -116,26 +111,8 @@ export function BonusTab({ results }: Props) {
     return { realThirds: realThirdsStats, qualifiedSet, playerPredictions };
   }, [results]);
 
-  const hasAnyResults = Object.keys(results).length > 0;
-
   return (
     <div className="space-y-8">
-      {/* Legend */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-        <div className="bg-card border border-border rounded-md p-3">
-          <p className="text-primary font-bold uppercase tracking-wider mb-1">Art. 18 — Posición exacta</p>
-          <p className="text-muted-foreground">+1 punto por cada equipo en la posición correcta (1°, 2°, 3° o 4°)</p>
-        </div>
-        <div className="bg-card border border-border rounded-md p-3">
-          <p className="text-primary font-bold uppercase tracking-wider mb-1">Art. 19 — Clasificados</p>
-          <p className="text-muted-foreground">1 clasificado correcto: +2 pts. Los 2 clasificados correctos: +5 pts.</p>
-        </div>
-        <div className="bg-card border border-border rounded-md p-3">
-          <p className="text-primary font-bold uppercase tracking-wider mb-1">Art. 19bis — Mejores terceros</p>
-          <p className="text-muted-foreground">Escala progresiva: +1, +2, +2, +3, +3, +4, +4, +5</p>
-        </div>
-      </div>
-
       {/* Summary table */}
       <div>
         <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3 mb-3">Resumen de Bonificaciones</h2>
@@ -168,15 +145,11 @@ export function BonusTab({ results }: Props) {
             </tbody>
           </table>
         </div>
-        {!hasAnyResults && (
-          <p className="text-center text-muted-foreground text-xs mt-3 italic">Los puntos se calcularán a medida que se conozcan resultados reales.</p>
-        )}
       </div>
 
       {/* Detalle — subtabs */}
       <div>
         <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3 mb-3">Detalle</h2>
-
         <div className="flex flex-wrap gap-2 mb-4">
           {groupKeys.map(g => (
             <button key={g} onClick={() => setSubTab(g)}
@@ -334,9 +307,6 @@ export function BonusTab({ results }: Props) {
                 </tbody>
               </table>
             </div>
-            {!hasAnyResults && (
-              <p className="text-center text-muted-foreground text-xs p-4 italic">Los terceros clasificados se determinarán al finalizar la fase de grupos.</p>
-            )}
           </div>
         )}
       </div>
