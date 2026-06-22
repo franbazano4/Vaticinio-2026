@@ -49,7 +49,10 @@ export default function Home() {
     return sorted.find(d => d >= todayStr) ?? sorted[sorted.length - 1];
   });
 
-  const groupStandings = useMemo(() => getGroupStandings(selectedGroup, results), [selectedGroup, results]);
+  const groupStandings = useMemo(() => {
+    if (selectedGroup === "TERCEROS") return [];
+    return getGroupStandings(selectedGroup, results);
+  }, [selectedGroup, results]);
 
   const tercerosStandings = useMemo(() => {
     const thirds = [];
@@ -185,7 +188,13 @@ export default function Home() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-border/50">
-                          {tercerosStandings.map((team, idx) => (
+                          {tercerosStandings.length === 0 ? (
+                            <tr>
+                              <td colSpan={10} className="px-3 py-6 text-center text-muted-foreground text-sm italic">
+                                Sin resultados cargados aún
+                              </td>
+                            </tr>
+                          ) : tercerosStandings.map((team, idx) => (
                             <tr key={team.name} className={`hover:bg-white/5 transition-colors ${idx < 8 ? 'bg-primary/5' : 'opacity-50 grayscale'}`}>
                               <td className="px-3 py-2 text-center font-mono">
                                 {idx + 1}{idx < 8 && <span className="text-primary ml-1 text-[10px]">▲</span>}
