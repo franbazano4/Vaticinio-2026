@@ -9,7 +9,7 @@ import { getGroupStandings, calcPts, calcBonusPoints } from "../lib/logic";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
-type Tab = "POR_FECHA" | "GRUPOS" | "EXTRA_GRUPOS" | "TABLA";
+type Tab = "POR_FECHA" | "GRUPOS" | "EXTRA_GRUPOS" | "TABLA" | "REGLAS";
 
 export default function Home() {
   const [results, setResults] = useState<Record<string, [number, number]>>({});
@@ -88,6 +88,7 @@ export default function Home() {
     GRUPOS: "Grupos",
     EXTRA_GRUPOS: "Extra grupos",
     TABLA: "Tabla",
+    REGLAS: "Reglas",
   };
 
   const navigateTo = (tab: Tab) => {
@@ -97,14 +98,13 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
-      {/* Header */}
       <header className="bg-card border-b border-border p-4 sticky top-0 z-20 flex justify-between items-center shadow-md">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-white uppercase">Vaticinio de los Pronósticos Deportivos</h1>
           <p className="text-primary text-sm font-medium tracking-wide">Copa del Mundo 2026</p>
         </div>
         <div className="flex items-center gap-3">
-          {/* Hamburger menu button */}
+          <GlobeButton onFetched={fetchResultsFromServer} apiBase={API_BASE} />
           <button
             onClick={() => setMenuOpen(v => !v)}
             className="flex flex-col justify-center items-center gap-1.5 w-10 h-10 rounded-md hover:bg-white/10 transition-colors"
@@ -117,14 +117,13 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Dropdown menu */}
       {menuOpen && (
         <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)}>
           <div
             className="absolute top-[73px] right-4 bg-card border border-border rounded-lg shadow-2xl overflow-hidden w-52"
             onClick={e => e.stopPropagation()}
           >
-            {(["POR_FECHA", "GRUPOS", "EXTRA_GRUPOS", "TABLA"] as Tab[]).map(tab => (
+            {(["POR_FECHA", "GRUPOS", "EXTRA_GRUPOS", "TABLA", "REGLAS"] as Tab[]).map(tab => (
               <button
                 key={tab}
                 onClick={() => navigateTo(tab)}
@@ -142,8 +141,6 @@ export default function Home() {
         </div>
       )}
 
-
-
       <main className="flex-1 p-4 max-w-5xl mx-auto w-full">
         {isLoading && Object.keys(results).length === 0 ? (
           <div className="text-center p-12 opacity-50 font-mono text-sm flex flex-col items-center gap-4">
@@ -153,19 +150,8 @@ export default function Home() {
         ) : (
           <div key={activeTab} className="flex flex-col gap-6">
 
-            {/* POR FECHA — pantalla principal */}
             {activeTab === "POR_FECHA" && (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div className="bg-card border border-border rounded-md p-3">
-                    <p className="text-yellow-400 font-bold uppercase tracking-wider mb-1">Art. 16 · +2 pts</p>
-                    <p className="text-muted-foreground">Acertar el resultado (ganador o empate) sin importar el marcador exacto.</p>
-                  </div>
-                  <div className="bg-card border border-border rounded-md p-3">
-                    <p className="text-green-400 font-bold uppercase tracking-wider mb-1">Art. 17 · +2 pts adicionales</p>
-                    <p className="text-muted-foreground">Acertar el marcador exacto. Se suma junto al Art. 16 (+4 pts en total).</p>
-                  </div>
-                </div>
                 <CalendarDatePicker dates={dates} selected={selectedDate} onSelect={setSelectedDate} />
                 <div className="space-y-4">
                   <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Partidos — {selectedDate}</h2>
@@ -180,7 +166,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* GRUPOS */}
             {activeTab === "GRUPOS" && (
               <div className="space-y-6">
                 <div className="flex flex-wrap gap-2">
@@ -277,7 +262,7 @@ export default function Home() {
               <div className="space-y-6">
                 {!isGroupStageComplete && (
                   <div className="bg-yellow-400/10 border border-yellow-400/30 rounded-md px-4 py-3 text-sm text-yellow-300 max-w-2xl mx-auto">
-                    <span className="font-bold">Fase de grupos en curso</span> — los puntos Extra grupos (Arts. 18, 19, 19bis) se sumarán al marcador cuando se jueguen los 72 partidos. Seguílos en la pestaña <span className="font-bold">Extra grupos</span>.
+                    <span className="font-bold">Fase de grupos en curso</span> — los puntos Extra grupos (Arts. 18, 19, 19bis) se sumarán al marcador cuando se jueguen los 72 partidos. Seguílos en <span className="font-bold">Extra grupos</span>.
                   </div>
                 )}
                 <div className="grid grid-cols-1 gap-4 max-w-2xl mx-auto">
@@ -309,6 +294,70 @@ export default function Home() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "REGLAS" && (
+              <div className="space-y-4 max-w-2xl mx-auto">
+                <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Reglas de puntuación</h2>
+
+                {/* Resultados */}
+                <div className="bg-card border border-border rounded-lg overflow-hidden">
+                  <div className="bg-black/30 px-4 py-2 border-b border-border">
+                    <p className="text-primary font-bold uppercase tracking-wider text-sm">Resultados de partidos</p>
+                  </div>
+                  <div className="divide-y divide-border/50">
+                    <div className="px-4 py-3 flex items-start gap-4">
+                      <span className="text-yellow-400 font-black text-lg w-10 text-center flex-shrink-0">+2</span>
+                      <div>
+                        <p className="text-white font-bold text-sm">Art. 16 — Resultado no exacto</p>
+                        <p className="text-muted-foreground text-xs mt-0.5">Acertar el ganador o empate sin importar el marcador exacto.</p>
+                      </div>
+                    </div>
+                    <div className="px-4 py-3 flex items-start gap-4">
+                      <span className="text-green-400 font-black text-lg w-10 text-center flex-shrink-0">+4</span>
+                      <div>
+                        <p className="text-white font-bold text-sm">Art. 17 — Resultado exacto</p>
+                        <p className="text-muted-foreground text-xs mt-0.5">Acertar el marcador exacto. Suma los +2 del Art. 16 más +2 adicionales.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Extra grupos */}
+                <div className="bg-card border border-border rounded-lg overflow-hidden">
+                  <div className="bg-black/30 px-4 py-2 border-b border-border">
+                    <p className="text-primary font-bold uppercase tracking-wider text-sm">Extra grupos — Solo al finalizar la fase</p>
+                  </div>
+                  <div className="divide-y divide-border/50">
+                    <div className="px-4 py-3 flex items-start gap-4">
+                      <span className="text-yellow-400 font-black text-lg w-10 text-center flex-shrink-0">+1</span>
+                      <div>
+                        <p className="text-white font-bold text-sm">Art. 18 — Posición exacta</p>
+                        <p className="text-muted-foreground text-xs mt-0.5">+1 punto por cada equipo en la posición correcta (1°, 2°, 3° o 4°) dentro de un grupo.</p>
+                      </div>
+                    </div>
+                    <div className="px-4 py-3 flex items-start gap-4">
+                      <span className="text-yellow-400 font-black text-lg w-10 text-center flex-shrink-0">+2/5</span>
+                      <div>
+                        <p className="text-white font-bold text-sm">Art. 19 — Clasificados</p>
+                        <p className="text-muted-foreground text-xs mt-0.5">+2 pts si acertás 1 de los 2 clasificados de un grupo. +5 pts si acertás ambos. Solo aplica para 1° y 2° de cada grupo.</p>
+                      </div>
+                    </div>
+                    <div className="px-4 py-3 flex items-start gap-4">
+                      <span className="text-yellow-400 font-black text-lg w-10 text-center flex-shrink-0">1→5</span>
+                      <div>
+                        <p className="text-white font-bold text-sm">Art. 19bis — Mejores terceros</p>
+                        <p className="text-muted-foreground text-xs mt-0.5">Los 8 mejores terceros clasifican. Los puntos dependen de la posición en la tabla de terceros:</p>
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {["1°→+1","2°→+2","3°→+2","4°→+3","5°→+3","6°→+4","7°→+4","8°→+5"].map(r => (
+                            <span key={r} className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded border border-primary/20">{r}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
