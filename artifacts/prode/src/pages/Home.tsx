@@ -9,7 +9,7 @@ import { getGroupStandings, calcPts, calcBonusPoints } from "../lib/logic";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
-type Tab = "PRINCIPAL" | "GRUPOS" | "REGLAS";
+type Tab = "PRINCIPAL" | "GRUPOS" | "FASE_FINAL" | "RONDA_RELAMPAGO" | "REGLAS";
 type GruposSubTab = "CLASIFICACION" | "EXTRA_GRUPOS";
 
 export default function Home() {
@@ -88,6 +88,8 @@ export default function Home() {
   const TAB_LABELS: Record<Tab, string> = {
     PRINCIPAL: "Principal",
     GRUPOS: "Grupos",
+    FASE_FINAL: "Fase Final",
+    RONDA_RELAMPAGO: "Ronda Relámpago",
     REGLAS: "Reglas",
   };
 
@@ -123,7 +125,7 @@ export default function Home() {
             className="absolute top-[73px] right-4 bg-card border border-border rounded-lg shadow-2xl overflow-hidden w-52"
             onClick={e => e.stopPropagation()}
           >
-            {(["PRINCIPAL", "GRUPOS", "REGLAS"] as Tab[]).map(tab => (
+            {(["PRINCIPAL", "GRUPOS", "FASE_FINAL", "RONDA_RELAMPAGO", "REGLAS"] as Tab[]).map(tab => (
               <button
                 key={tab}
                 onClick={() => navigateTo(tab)}
@@ -287,6 +289,18 @@ export default function Home() {
 
                 {/* Extra grupos */}
                 {gruposSubTab === "EXTRA_GRUPOS" && <BonusTab results={results} />}
+              </div>
+            )}
+
+            {(activeTab === "FASE_FINAL" || activeTab === "RONDA_RELAMPAGO") && (
+              <div className="flex flex-col items-center justify-center py-24 gap-6 text-center">
+                <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
+                  <span className="text-3xl">⚙️</span>
+                </div>
+                <div>
+                  <p className="text-white font-bold text-lg uppercase tracking-wider mb-2">En proceso</p>
+                  <p className="text-muted-foreground text-sm">Estamos trabajando para usted.</p>
+                </div>
               </div>
             )}
 
