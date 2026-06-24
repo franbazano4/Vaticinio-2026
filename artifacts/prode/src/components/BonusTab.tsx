@@ -38,7 +38,11 @@ export function BonusTab({ results }: Props) {
     const g = subTab;
     const actual = getGroupStandings(g, results);
     const actualBestThirds = new Set(getActualBestThirds(results));
+
+    // Build set of actual qualifiers for this group (1ro, 2do, y 3ro si clasifica)
     const actualQ = new Set([actual[0]?.name, actual[1]?.name].filter(Boolean));
+    const thirdClassifies = !!(actual[2] && actualBestThirds.has(actual[2].name));
+    if (thirdClassifies && actual[2]) actualQ.add(actual[2].name);
 
     const playerPreds = PARTICIPANTS.map((p, i) => ({
       name: p,
@@ -48,12 +52,12 @@ export function BonusTab({ results }: Props) {
 
     const teamRows = [0, 1, 2, 3].map(pos => {
       const actualTeam = actual[pos];
-      const isQualifier = pos < 2;
-      const isThird = pos === 2;
+      const isQualifier = pos < 2 || (pos === 2 && thirdClassifies);
+      const isThird = pos === 2 && !thirdClassifies;
       const playerCols = playerPreds.map(({ name, pred }) => {
         const predTeam = pred[pos];
         const posHit = !!(actualTeam && predTeam && actualTeam.name === predTeam.name);
-        const qualHit = !!(isQualifier && predTeam && actualQ.has(predTeam.name));
+        const qualHit = !!(predTeam && actualQ.has(predTeam.name));
         const thirdHit = !!(isThird && predTeam && actualBestThirds.has(predTeam.name));
         return { name, predTeam: predTeam?.name ?? "—", posHit, qualHit, thirdHit };
       });
@@ -67,14 +71,14 @@ export function BonusTab({ results }: Props) {
         if (pred[pos] && pred[pos].name === t.name) art18pts++;
       });
       let qualHits = 0;
-      [0, 1].forEach(pos => {
+      [0, 1, 2].forEach(pos => {
         if (pred[pos] && actualQ.has(pred[pos].name)) qualHits++;
       });
-      const art19pts = qualHits === 2 ? 5 : qualHits === 1 ? 2 : 0;
+      const art19pts = qualHits === 0 ? 0 : qualHits === 1 ? 2 : 2 + (qualHits - 1) * 3;
       return { name: p, art18pts, art19pts };
     });
 
-    return { g, actual, teamRows, playerTotals };
+    return { g, actual, teamRows, playerTotals, thirdClassifies };
   }, [results, subTab]);
 
   const tercerosDetail = useMemo(() => {
