@@ -144,18 +144,23 @@ export function calcBonusPoints(
     }
   }
 
-  // Art. 19 — per group: +2 if 1 qualifier correct, +5 if both correct
+  // Art. 19 — per group: +2 first qualifier correct, +3 each extra
+  // If the group's 3rd place is among the best 8 thirds, they also count as a qualifier
+  const actualBestThirds = new Set(getActualBestThirds(results));
   let art19 = 0;
   for (const g of groupKeys) {
     const actual = getGroupStandings(g, results);
     if (!actual[0] || !actual[1]) continue;
     const actualQ = new Set([actual[0].name, actual[1].name]);
+    if (actual[2] && actualBestThirds.has(actual[2].name)) {
+      actualQ.add(actual[2].name);
+    }
     const predicted = getPlayerGroupStandings(player, g, forecasts);
     let hits = 0;
-    [0, 1].forEach(pos => {
+    [0, 1, 2].forEach(pos => {
       if (predicted[pos] && actualQ.has(predicted[pos].name)) hits++;
     });
-    art19 += hits === 2 ? 5 : hits === 1 ? 2 : 0;
+    art19 += hits === 0 ? 0 : hits === 1 ? 2 : 2 + (hits - 1) * 3;
   }
 
   // Art. 19bis — best 8 thirds, points based on real position
