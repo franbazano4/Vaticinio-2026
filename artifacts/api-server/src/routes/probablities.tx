@@ -4,8 +4,8 @@ const router = Router();
 
 // Parámetros calculados con suavizado bayesiano sobre partidos 2023-2026
 const ATTACK: Record<string, number> = {
-  "Algeria":1.194,"Argentina":1.168,"Australia":1.005,"Austria":1.184,
-  "Belgium":1.220,"Bosnia y Herz.":0.691,"Brasil":0.976,"Canadá":0.809,
+  "Argelia":1.194,"Argentina":1.168,"Australia":1.005,"Austria":1.184,
+  "Bélgica":1.220,"Bosnia y Herz.":0.691,"Brasil":0.976,"Canadá":0.809,
   "Cabo Verde":0.705,"Colombia":1.012,"Croacia":1.028,"Curaçao":0.968,
   "Rep. Checa":1.067,"R.D. Congo":0.689,"Ecuador":0.659,"Egipto":0.904,
   "Inglaterra":1.129,"Francia":1.190,"Alemania":1.154,"Ghana":0.747,
@@ -19,8 +19,8 @@ const ATTACK: Record<string, number> = {
 };
 
 const DEFENCE: Record<string, number> = {
-  "Algeria":0.752,"Argentina":0.447,"Australia":0.798,"Austria":0.867,
-  "Belgium":0.896,"Bosnia y Herz.":1.675,"Brasil":1.166,"Canadá":0.999,
+  "Argelia":0.752,"Argentina":0.447,"Australia":0.798,"Austria":0.867,
+  "Bélgica":0.896,"Bosnia y Herz.":1.675,"Brasil":1.166,"Canadá":0.999,
   "Cabo Verde":1.089,"Colombia":0.909,"Croacia":1.017,"Curaçao":1.283,
   "Rep. Checa":1.117,"R.D. Congo":0.644,"Ecuador":0.685,"Egipto":0.801,
   "Inglaterra":0.632,"Francia":0.926,"Alemania":1.228,"Ghana":1.272,
