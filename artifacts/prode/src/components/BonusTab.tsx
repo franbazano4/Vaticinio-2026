@@ -72,9 +72,23 @@ export function BonusTab({ results }: Props) {
       actual.forEach((t, pos) => {
         if (pred[pos] && pred[pos].name === t.name) art18pts++;
       });
-      // Compare sets: how many of the player's predicted top-N are in the real qualifiers
-      const n = actualQ.size;
-      const predictedQ = new Set(pred.slice(0, n).map((t: { name: string }) => t.name));
+      // Player's predicted qualifiers: top-2 always, plus their 3rd only if
+      // it's among their own predicted best 8 thirds
+      const playerThirdsForBonus: { name: string; pts: number; dif: number; gf: number }[] = [];
+      for (const gr of groupKeys) {
+        const grPred = getPlayerGroupStandings(p, gr, FORECASTS);
+        if (grPred[2]) playerThirdsForBonus.push(grPred[2]);
+      }
+      playerThirdsForBonus.sort((a: { pts: number; dif: number; gf: number }, b: { pts: number; dif: number; gf: number }) => {
+        if (b.pts !== a.pts) return b.pts - a.pts;
+        if (b.dif !== a.dif) return b.dif - a.dif;
+        return b.gf - a.gf;
+      });
+      const playerBestThirds = new Set(playerThirdsForBonus.slice(0, 8).map((t: { name: string }) => t.name));
+      const predictedQ = new Set<string>();
+      if (pred[0]) predictedQ.add(pred[0].name);
+      if (pred[1]) predictedQ.add(pred[1].name);
+      if (pred[2] && playerBestThirds.has(pred[2].name)) predictedQ.add(pred[2].name);
       let qualHits = 0;
       predictedQ.forEach((name: string) => {
         if (actualQ.has(name)) qualHits++;
