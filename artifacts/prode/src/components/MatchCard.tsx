@@ -29,7 +29,7 @@ function countryCodeToEmoji(code: string): string {
     .join("");
 }
 
-function shareMatch(match: Match) {
+function shareMatch(match: Match, probabilities: Record<string, number> | null) {
   const homeCode = FLAG_CODE[match.home] ?? "";
   const awayCode = FLAG_CODE[match.away] ?? "";
   const homeFlag = countryCodeToEmoji(homeCode);
@@ -38,7 +38,14 @@ function shareMatch(match: Match) {
   const lines = [`${homeFlag} vs ${awayFlag}`];
   for (const p of PARTICIPANTS) {
     const pred = FORECASTS[`${p}_${match.id}`];
-    if (pred) lines.push(`${p}: ${pred[0]}-${pred[1]}`);
+    if (pred) {
+      const scoreKey = `${pred[0]}-${pred[1]}`;
+      const prob = probabilities ? probabilities[scoreKey] : null;
+      const probStr = prob !== null && prob !== undefined
+        ? ` (${prob < 0.1 ? "<0.1" : prob.toFixed(1)}%)`
+        : "";
+      lines.push(`${p}: ${pred[0]}-${pred[1]}${probStr}`);
+    }
   }
 
   const text = encodeURIComponent(lines.join("\n"));
@@ -84,7 +91,7 @@ export function MatchCard({ match, realResult }: MatchCardProps) {
           )}
           {!realResult && (
             <button
-              onClick={() => shareMatch(match)}
+              onClick={() => shareMatch(match, probabilities)}
               title="Compartir pronósticos"
               className="text-muted-foreground hover:text-green-400 transition-colors"
             >
