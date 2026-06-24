@@ -61,7 +61,7 @@ export function MatchCard({ match, realResult }: MatchCardProps) {
     if (scores.size === 0) return;
 
     const scoresParam = Array.from(scores).join(",");
-    const url = `${API_URL}/probabilities?home=${encodeURIComponent(match.home)}&away=${encodeURIComponent(match.away)}&scores=${encodeURIComponent(scoresParam)}&neutral=true`;
+    const url = `${API_URL}/api/probabilities?home=${encodeURIComponent(match.home)}&away=${encodeURIComponent(match.away)}&scores=${encodeURIComponent(scoresParam)}&neutral=true`;
 
     fetch(url)
       .then(r => r.json())
