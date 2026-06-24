@@ -147,26 +147,21 @@ export function MatchCard({ match, realResult }: MatchCardProps) {
           else if (pts === 0) { bgClass = "bg-red-400/10 border border-red-400/20"; ptsColor = "text-red-400"; }
 
           return (
-            <div key={p} className={`flex flex-col gap-0.5 px-2 py-1.5 rounded-sm ${bgClass}`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i] }} />
-                  <span className="text-xs font-semibold">{p}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-mono tabular-nums">{pred[0]}-{pred[1]}</span>
-                  {pts !== null && (
-                    <span className={`text-[10px] font-black ${ptsColor}`}>+{pts}</span>
-                  )}
-                </div>
+            <div key={p} className={`flex items-center justify-between px-2 py-1.5 rounded-sm ${bgClass}`}>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i] }} />
+                <span className="text-xs font-semibold">{p}</span>
               </div>
-              {prob !== null && prob !== undefined && (
-                <div className="flex justify-end">
-                  <span className="text-[10px] text-muted-foreground/70 font-mono">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-mono tabular-nums">{pred[0]}-{pred[1]}</span>
+                {pts !== null ? (
+                  <span className={`text-[10px] font-black ${ptsColor}`}>+{pts}</span>
+                ) : prob !== null && prob !== undefined ? (
+                  <span className="text-[10px] font-mono text-muted-foreground/70">
                     {prob < 0.1 ? "<0.1" : prob.toFixed(1)}%
                   </span>
-                </div>
-              )}
+                ) : null}
+              </div>
             </div>
           );
         })}
