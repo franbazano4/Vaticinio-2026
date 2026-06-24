@@ -160,18 +160,33 @@ export function calcBonusPoints(
     qualifiersByGroup[g] = qualifiers;
   }
 
+  // Build predicted best thirds for this player (same logic as getActualBestThirds but with player forecasts)
+  const playerPredictedThirds: { name: string; pts: number; dif: number; gf: number }[] = [];
+  for (const g of groupKeys) {
+    const pred = getPlayerGroupStandings(player, g, forecasts);
+    if (pred[2]) playerPredictedThirds.push(pred[2]);
+  }
+  playerPredictedThirds.sort((a, b) => {
+    if (b.pts !== a.pts) return b.pts - a.pts;
+    if (b.dif !== a.dif) return b.dif - a.dif;
+    return b.gf - a.gf;
+  });
+  const playerBestThirdsSet = new Set(playerPredictedThirds.slice(0, 8).map(t => t.name));
+
   let art19 = 0;
   for (const g of groupKeys) {
     const groupQualifiers = qualifiersByGroup[g];
     // Skip groups with no results yet
     if (groupQualifiers.size === 0) continue;
     const predicted = getPlayerGroupStandings(player, g, forecasts);
-    // Build the player's predicted qualifiers set: top N teams from their prediction
-    // where N = how many teams actually qualify from this group (2 or 3)
-    const n = groupQualifiers.size;
-    const predictedQualifiers = new Set(
-      predicted.slice(0, n).map(t => t.name)
-    );
+    // Build the player's predicted qualifiers: top-2 always, plus their 3rd
+    // only if they predicted it among their best 8 thirds
+    const predictedQualifiers = new Set<string>();
+    if (predicted[0]) predictedQualifiers.add(predicted[0].name);
+    if (predicted[1]) predictedQualifiers.add(predicted[1].name);
+    if (predicted[2] && playerBestThirdsSet.has(predicted[2].name)) {
+      predictedQualifiers.add(predicted[2].name);
+    }
     // Count how many predicted qualifiers are in the real qualifiers set
     let hits = 0;
     predictedQualifiers.forEach(name => {
