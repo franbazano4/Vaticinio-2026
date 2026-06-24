@@ -1,0 +1,94 @@
+import { Router } from "express";
+
+const router = Router();
+
+// Parámetros calculados con suavizado bayesiano sobre partidos 2023-2026
+const ATTACK: Record<string, number> = {
+  "Algeria":1.194,"Argentina":1.168,"Australia":1.005,"Austria":1.184,
+  "Belgium":1.220,"Bosnia y Herz.":0.691,"Brasil":0.976,"Canadá":0.809,
+  "Cabo Verde":0.705,"Colombia":1.012,"Croacia":1.028,"Curaçao":0.968,
+  "Rep. Checa":1.067,"R.D. Congo":0.689,"Ecuador":0.659,"Egipto":0.904,
+  "Inglaterra":1.129,"Francia":1.190,"Alemania":1.154,"Ghana":0.747,
+  "Haití":1.192,"Irán":1.205,"Irak":0.805,"Costa de Marfil":1.004,
+  "Japón":1.525,"Jordania":0.927,"México":0.855,"Marruecos":1.161,
+  "Países Bajos":1.251,"Nueva Zelanda":1.036,"Noruega":1.346,"Panamá":0.893,
+  "Paraguay":0.605,"Portugal":1.348,"Qatar":0.825,"Arabia Saudita":0.679,
+  "Escocia":0.885,"Senegal":1.082,"Sudáfrica":0.800,"Corea del Sur":1.081,
+  "España":1.390,"Suecia":1.080,"Suiza":1.056,"Túnez":0.772,
+  "Turquía":0.994,"EE.UU.":1.056,"Uruguay":0.783,"Uzbekistán":0.861,
+};
+
+const DEFENCE: Record<string, number> = {
+  "Algeria":0.752,"Argentina":0.447,"Australia":0.798,"Austria":0.867,
+  "Belgium":0.896,"Bosnia y Herz.":1.675,"Brasil":1.166,"Canadá":0.999,
+  "Cabo Verde":1.089,"Colombia":0.909,"Croacia":1.017,"Curaçao":1.283,
+  "Rep. Checa":1.117,"R.D. Congo":0.644,"Ecuador":0.685,"Egipto":0.801,
+  "Inglaterra":0.632,"Francia":0.926,"Alemania":1.228,"Ghana":1.272,
+  "Haití":1.176,"Irán":0.804,"Irak":0.984,"Costa de Marfil":0.743,
+  "Japón":0.749,"Jordania":1.380,"México":0.976,"Marruecos":0.444,
+  "Países Bajos":1.112,"Nueva Zelanda":1.151,"Noruega":1.068,"Panamá":1.288,
+  "Paraguay":1.041,"Portugal":0.879,"Qatar":1.443,"Arabia Saudita":1.111,
+  "Escocia":1.441,"Senegal":0.624,"Sudáfrica":0.888,"Corea del Sur":0.928,
+  "España":0.883,"Suecia":1.491,"Suiza":1.113,"Túnez":0.837,
+  "Turquía":1.352,"EE.UU.":1.221,"Uruguay":0.828,"Uzbekistán":0.842,
+};
+
+const GLOBAL_AVG_GOALS = 1.195;
+const HOME_ADV = 1.1;
+
+function poissonProb(lambda: number, k: number): number {
+  if (k < 0 || k > 20) return 0;
+  let logP = -lambda + k * Math.log(lambda);
+  for (let i = 1; i <= k; i++) logP -= Math.log(i);
+  return Math.exp(logP);
+}
+
+function scoreProbability(
+  home: string,
+  away: string,
+  scoreHome: number,
+  scoreAway: number,
+  neutral = true
+): number {
+  const ha = neutral ? 1.0 : HOME_ADV;
+  const atkH = ATTACK[home] ?? 1.0;
+  const defA = DEFENCE[away] ?? 1.0;
+  const atkA = ATTACK[away] ?? 1.0;
+  const defH = DEFENCE[home] ?? 1.0;
+  const lambdaH = atkH * defA * ha * GLOBAL_AVG_GOALS;
+  const lambdaA = atkA * defH * GLOBAL_AVG_GOALS;
+  return poissonProb(lambdaH, scoreHome) * poissonProb(lambdaA, scoreAway);
+}
+
+// GET /probabilities?home=Argentina&away=Francia&scores=2-1,1-0,0-0
+router.get("/probabilities", (req, res) => {
+  const { home, away, scores, neutral } = req.query as {
+    home: string;
+    away: string;
+    scores: string;
+    neutral?: string;
+  };
+
+  if (!home || !away || !scores) {
+    res.status(400).json({ error: "Missing home, away or scores params" });
+    return;
+  }
+
+  const isNeutral = neutral !== "false";
+  const scoreList = scores.split(",").map(s => s.trim());
+  const result: Record<string, number> = {};
+
+  for (const score of scoreList) {
+    const parts = score.split("-");
+    if (parts.length !== 2) continue;
+    const sh = parseInt(parts[0]);
+    const sa = parseInt(parts[1]);
+    if (isNaN(sh) || isNaN(sa)) continue;
+    const prob = scoreProbability(home, away, sh, sa, isNeutral);
+    result[score] = Math.round(prob * 10000) / 100; // porcentaje con 2 decimales
+  }
+
+  res.json({ home, away, probabilities: result });
+});
+
+export default router;
