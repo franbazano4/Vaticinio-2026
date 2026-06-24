@@ -39,8 +39,10 @@ export function BonusTab({ results }: Props) {
     const actual = getGroupStandings(g, results);
     const actualBestThirds = new Set(getActualBestThirds(results));
 
-    // Build set of actual qualifiers for this group (1ro, 2do, y 3ro si clasifica)
-    const actualQ = new Set([actual[0]?.name, actual[1]?.name].filter(Boolean));
+    // Build set of actual qualifiers for this group from the qualifiersByGroup map
+    const actualQ = new Set<string>();
+    if (actual[0]) actualQ.add(actual[0].name);
+    if (actual[1]) actualQ.add(actual[1].name);
     const thirdClassifies = !!(actual[2] && actualBestThirds.has(actual[2].name));
     if (thirdClassifies && actual[2]) actualQ.add(actual[2].name);
 
@@ -70,9 +72,12 @@ export function BonusTab({ results }: Props) {
       actual.forEach((t, pos) => {
         if (pred[pos] && pred[pos].name === t.name) art18pts++;
       });
+      // Compare sets: how many of the player's predicted top-N are in the real qualifiers
+      const n = actualQ.size;
+      const predictedQ = new Set(pred.slice(0, n).map((t: { name: string }) => t.name));
       let qualHits = 0;
-      [0, 1, 2].forEach(pos => {
-        if (pred[pos] && actualQ.has(pred[pos].name)) qualHits++;
+      predictedQ.forEach((name: string) => {
+        if (actualQ.has(name)) qualHits++;
       });
       const art19pts = qualHits === 0 ? 0 : qualHits === 1 ? 2 : 2 + (qualHits - 1) * 3;
       return { name: p, art18pts, art19pts };
