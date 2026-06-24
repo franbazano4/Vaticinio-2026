@@ -341,10 +341,10 @@ export default function Home() {
                       </div>
                     </div>
                     <div className="px-4 py-3 flex items-start gap-4">
-                      <span className="text-yellow-400 font-black text-lg w-10 text-center flex-shrink-0">+2/5</span>
+                      <span className="text-yellow-400 font-black text-lg w-10 text-center flex-shrink-0">+2/8</span>
                       <div>
                         <p className="text-white font-bold text-sm">Art. 19 — Clasificados</p>
-                        <p className="text-muted-foreground text-xs mt-0.5">+2 pts si acertás 1 de los 2 clasificados de un grupo. +5 pts si acertás ambos. Solo aplica para 1° y 2° de cada grupo.</p>
+                        <p className="text-muted-foreground text-xs mt-0.5">+2 pts si acertás 1 clasificado de un grupo, +3 por cada uno extra. Aplica para 1°, 2° y 3° si el tercero clasifica entre los 8 mejores.</p>
                       </div>
                     </div>
                     <div className="px-4 py-3 flex items-start gap-4">
