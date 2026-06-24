@@ -145,20 +145,37 @@ export function calcBonusPoints(
   }
 
   // Art. 19 — per group: +2 first qualifier correct, +3 each extra
-  // If the group's 3rd place is among the best 8 thirds, they also count as a qualifier
-  const actualBestThirds = new Set(getActualBestThirds(results));
+  // Build a map: group -> Set of teams that actually qualified from that group
+  // (always the top 2, plus the 3rd if they are among the best 8 thirds)
+  const bestThirdsSet = new Set(getActualBestThirds(results));
+  const qualifiersByGroup: Record<string, Set<string>> = {};
+  for (const g of groupKeys) {
+    const standing = getGroupStandings(g, results);
+    const qualifiers = new Set<string>();
+    if (standing[0]) qualifiers.add(standing[0].name);
+    if (standing[1]) qualifiers.add(standing[1].name);
+    if (standing[2] && bestThirdsSet.has(standing[2].name)) {
+      qualifiers.add(standing[2].name);
+    }
+    qualifiersByGroup[g] = qualifiers;
+  }
+
   let art19 = 0;
   for (const g of groupKeys) {
-    const actual = getGroupStandings(g, results);
-    if (!actual[0] || !actual[1]) continue;
-    const actualQ = new Set([actual[0].name, actual[1].name]);
-    if (actual[2] && actualBestThirds.has(actual[2].name)) {
-      actualQ.add(actual[2].name);
-    }
+    const groupQualifiers = qualifiersByGroup[g];
+    // Skip groups with no results yet
+    if (groupQualifiers.size === 0) continue;
     const predicted = getPlayerGroupStandings(player, g, forecasts);
+    // Build the player's predicted qualifiers set: top N teams from their prediction
+    // where N = how many teams actually qualify from this group (2 or 3)
+    const n = groupQualifiers.size;
+    const predictedQualifiers = new Set(
+      predicted.slice(0, n).map(t => t.name)
+    );
+    // Count how many predicted qualifiers are in the real qualifiers set
     let hits = 0;
-    [0, 1, 2].forEach(pos => {
-      if (predicted[pos] && actualQ.has(predicted[pos].name)) hits++;
+    predictedQualifiers.forEach(name => {
+      if (groupQualifiers.has(name)) hits++;
     });
     art19 += hits === 0 ? 0 : hits === 1 ? 2 : 2 + (hits - 1) * 3;
   }
