@@ -34,6 +34,8 @@ function shareKnockoutMatch(
   home: string,
   away: string,
   probabilities: Record<string, number> | null,
+  resolvedAll: Record<string, ResolvedMatch>,
+  resultsAll: Record<string, KnockoutResult>,
 ) {
   const homeFlag = countryCodeToEmoji(FLAG_CODE[home] ?? "");
   const awayFlag = countryCodeToEmoji(FLAG_CODE[away] ?? "");
@@ -49,7 +51,9 @@ function shareKnockoutMatch(
         const probStr = prob !== null && prob !== undefined
           ? ` (${prob < 0.1 ? "<0.1" : prob.toFixed(1)}%)`
           : "";
-        lines.push(`${p}: ${hs}-${as_}${probStr}`);
+        const bd = calcKnockoutMatchPoints(p, matchId, resolvedAll, resultsAll);
+        const multStr = bd.multiplier !== 1 ? ` x${bd.multiplier}` : "";
+        lines.push(`${p}${multStr}: ${hs}-${as_}${probStr}`);
       }
     }
   }
@@ -92,7 +96,7 @@ export function KnockoutMatchCard({ match, resolved, realResult, resolvedAll, re
             <span className="bg-primary/20 text-primary px-1.5 py-0.5 rounded uppercase font-bold" style={{ fontSize: "10px" }}>Jugado</span>
           ) : resolved.home && resolved.away ? (
             <button
-              onClick={() => shareKnockoutMatch(match.id, resolved.home!, resolved.away!, probabilities)}
+              onClick={() => shareKnockoutMatch(match.id, resolved.home!, resolved.away!, probabilities, resolvedAll, resultsAll)}
               title="Compartir pronósticos"
               className="text-muted-foreground hover:text-green-400 transition-colors"
             >
@@ -182,6 +186,9 @@ export function KnockoutMatchCard({ match, resolved, realResult, resolvedAll, re
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i] }} />
                 <span className="text-xs font-semibold">{p}</span>
+                {breakdown.multiplier !== 1 && (
+                  <span className="text-[9px] font-bold text-primary/80 bg-primary/10 px-1 rounded">x{breakdown.multiplier}</span>
+                )}
               </div>
               <div className="flex items-center gap-1.5">
                 {homeScore !== undefined && awayScore !== undefined ? (
@@ -189,10 +196,6 @@ export function KnockoutMatchCard({ match, resolved, realResult, resolvedAll, re
                 ) : breakdown.participantsKnown ? (
                   <span className="text-[10px] text-yellow-400/80 italic">—</span>
                 ) : null}
-
-                {breakdown.multiplier !== 1 && (
-                  <span className="text-[9px] font-bold text-primary/80 bg-primary/10 px-1 rounded">x{breakdown.multiplier}</span>
-                )}
 
                 {pts !== null ? (
                   <span className={`text-[10px] font-black ${ptsColor}`}>{pts > 0 ? "+" : ""}{pts}</span>
