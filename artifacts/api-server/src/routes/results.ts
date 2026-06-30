@@ -245,9 +245,26 @@ router.post("/results/fetch", async (req, res) => {
         if (!koMatchId) continue;
         const ph = match.score.penalties?.home ?? null;
         const pa = match.score.penalties?.away ?? null;
+
+        // football-data.org devuelve en fullTime el marcador acumulado incluyendo
+        // los goles de penales (p.ej. 1+2=3, 1+3=4 → fullTime 3-4 para un 1-1 real).
+        // Para obtener el resultado real (previo a penales), restamos los goles de
+        // penales al fullTime. Si el resultado es negativo (o sea que fullTime NO
+        // incluye penales), usamos fullTime directamente.
+        let scoreH = h;
+        let scoreA = a;
+        if (ph !== null && pa !== null) {
+          const candidateH = h - ph;
+          const candidateA = a - pa;
+          if (candidateH >= 0 && candidateA >= 0) {
+            scoreH = candidateH;
+            scoreA = candidateA;
+          }
+        }
+
         const before = storedKnockoutResults[koMatchId];
         storedKnockoutResults[koMatchId] = {
-          score: [h, a],
+          score: [scoreH, scoreA],
           penalties: ph !== null && pa !== null ? [ph, pa] : undefined,
         };
         if (!before) koCount++;
