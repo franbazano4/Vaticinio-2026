@@ -78,7 +78,7 @@ export function KnockoutMatchCard({ match, resolved, realResult, resolvedAll, re
               </span>
               {realResult.penalties && (
                 <span className="text-xs font-mono text-muted-foreground">
-                  pen. {realResult.penalties[0]}-{realResult.penalties[1]}
+                  ({realResult.penalties[0]}-{realResult.penalties[1]})
                 </span>
               )}
             </div>
@@ -109,16 +109,10 @@ export function KnockoutMatchCard({ match, resolved, realResult, resolvedAll, re
 
           let homeScore: number | undefined;
           let awayScore: number | undefined;
-          let isPredDraw = false;
-          let penWinner: string | undefined;
 
           if (f && resolved.home && resolved.away) {
             homeScore = getScoreForTeam(f, resolved.home);
             awayScore = getScoreForTeam(f, resolved.away);
-            if (homeScore !== undefined && awayScore !== undefined) {
-              isPredDraw = homeScore === awayScore;
-              penWinner = f.penaltyWinner;
-            }
           }
 
           const scoreKey = homeScore !== undefined && awayScore !== undefined ? `${homeScore}-${awayScore}` : null;
@@ -142,16 +136,7 @@ export function KnockoutMatchCard({ match, resolved, realResult, resolvedAll, re
               <div className="flex items-center gap-1.5">
                 {homeScore !== undefined && awayScore !== undefined ? (
                   <span className="text-xs font-mono tabular-nums">
-                    <span className={isPredDraw && penWinner === resolved.home ? "text-yellow-400" : ""}>{homeScore}</span>
-                    {"-"}
-                    <span className={isPredDraw && penWinner === resolved.away ? "text-yellow-400" : ""}>{awayScore}</span>
-                    {isPredDraw && (
-                      <span className="text-muted-foreground">
-                        {realResult?.penalties
-                          ? ` (${realResult.penalties[0]}-${realResult.penalties[1]})`
-                          : penWinner ? ` ${penWinner}` : ""}
-                      </span>
-                    )}
+                    {homeScore}-{awayScore}
                   </span>
                 ) : breakdown.participantsKnown ? (
                   <span className="text-[10px] text-yellow-400/80 italic">—</span>
