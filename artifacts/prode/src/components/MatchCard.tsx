@@ -56,10 +56,8 @@ export function MatchCard({ match, realResult }: MatchCardProps) {
   const [probabilities, setProbabilities] = useState<Record<string, number> | null>(null);
 
   useEffect(() => {
-    // Solo fetchear probabilidades si el partido no fue jugado
     if (realResult) return;
 
-    // Recolectar todos los scores únicos que pronosticaron los participantes
     const scores = new Set<string>();
     for (const p of PARTICIPANTS) {
       const pred = FORECASTS[`${p}_${match.id}`];
@@ -75,7 +73,7 @@ export function MatchCard({ match, realResult }: MatchCardProps) {
       .then(data => {
         if (data.probabilities) setProbabilities(data.probabilities);
       })
-      .catch(() => {}); // Silencioso si falla
+      .catch(() => {});
   }, [match.id, match.home, match.away, realResult]);
 
   return (
@@ -105,19 +103,19 @@ export function MatchCard({ match, realResult }: MatchCardProps) {
       </div>
 
       <div className="flex items-center justify-between p-4">
-        <div className="flex items-center gap-3 flex-1">
+        <div className="flex items-center gap-1.5 sm:gap-3 flex-1 min-w-0">
           <img
             src={`https://flagcdn.com/w40/${FLAG_CODE[match.home]}.png`}
             alt={match.home}
-            className="w-8 h-auto shadow-sm rounded-sm"
+            className="w-8 h-auto shadow-sm rounded-sm flex-shrink-0"
             onError={(e) => (e.currentTarget.style.display = "none")}
           />
-          <span className="font-bold text-base">{match.home}</span>
+          <span className="font-bold text-sm sm:text-base truncate">{match.home}</span>
         </div>
 
-        <div className="flex-shrink-0 mx-4">
+        <div className="flex-shrink-0 mx-2 sm:mx-4">
           {realResult ? (
-            <div className="text-3xl font-black tabular-nums tracking-tighter bg-black/30 px-4 py-1 rounded-md text-primary shadow-inner">
+            <div className="text-lg sm:text-3xl font-black tabular-nums tracking-tighter bg-black/30 px-2 sm:px-4 py-1 rounded-md text-primary shadow-inner">
               {realResult[0]} - {realResult[1]}
             </div>
           ) : (
@@ -127,12 +125,12 @@ export function MatchCard({ match, realResult }: MatchCardProps) {
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-3 flex-1 text-right">
-          <span className="font-bold text-base">{match.away}</span>
+        <div className="flex items-center justify-end gap-1.5 sm:gap-3 flex-1 text-right min-w-0">
+          <span className="font-bold text-sm sm:text-base truncate">{match.away}</span>
           <img
             src={`https://flagcdn.com/w40/${FLAG_CODE[match.away]}.png`}
             alt={match.away}
-            className="w-8 h-auto shadow-sm rounded-sm"
+            className="w-8 h-auto shadow-sm rounded-sm flex-shrink-0"
             onError={(e) => (e.currentTarget.style.display = "none")}
           />
         </div>
