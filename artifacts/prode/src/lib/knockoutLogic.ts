@@ -124,19 +124,14 @@ export function calcKnockoutMatchPoints(
   const predIsDraw = predHomeScore === predAwayScore;
   const realIsDraw = realResult.score[0] === realResult.score[1];
 
-  // Art. 20 — vaticinar quién pasa
-  // Si el partido real se fue a penales, solo puede puntuar quien predijo empate.
-  if (realResult.penalties) {
-    if (predIsDraw && activeForecast.penaltyWinner === real.winner) {
-      base.advancePts = 1;
-    }
-  } else {
-    const predictedAdvancer = predIsDraw
-      ? activeForecast.penaltyWinner
-      : (predHomeScore > predAwayScore ? real.home : real.away);
-    if (predictedAdvancer && real.winner && predictedAdvancer === real.winner) {
-      base.advancePts = 1;
-    }
+  // Art. 20 — vaticinar quién pasa: +1 para cualquiera que acierte quién avanza,
+  // independientemente de si el partido se fue a penales o no.
+  // (Los penales solo restringen Art. 21, no Art. 20)
+  const predictedAdvancer = predIsDraw
+    ? activeForecast.penaltyWinner
+    : (predHomeScore > predAwayScore ? real.home : real.away);
+  if (predictedAdvancer && real.winner && predictedAdvancer === real.winner) {
+    base.advancePts = 1;
   }
 
   // Art. 21 — penales: solo aplica si el jugador explícitamente vaticinó
