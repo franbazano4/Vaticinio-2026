@@ -147,7 +147,7 @@ export function KnockoutMatchCard({ match, resolved, realResult, resolvedAll, re
                       <span className="text-muted-foreground">
                         {realResult?.penalties
                           ? ` (${realResult.penalties[0]}-${realResult.penalties[1]})`
-                          : penWinner ? ` (${penWinner})` : ""}
+                          : penWinner ? ` ${penWinner}` : ""}
                       </span>
                     )}
                   </span>
