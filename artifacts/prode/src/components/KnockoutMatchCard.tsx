@@ -59,21 +59,21 @@ export function KnockoutMatchCard({ match, resolved, realResult, resolvedAll, re
 
       {/* Teams + Score */}
       <div className="flex items-center justify-between p-4">
-        <div className="flex items-center gap-3 flex-1">
+        <div className="flex items-center gap-1.5 sm:gap-3 flex-1 min-w-0">
           {resolved.home ? (
             <>
-              <img src={`https://flagcdn.com/w40/${FLAG_CODE[resolved.home]}.png`} alt={resolved.home} className="w-8 h-auto shadow-sm rounded-sm" onError={(e) => (e.currentTarget.style.display = "none")} />
-              <span className="font-bold text-base">{resolved.home}</span>
+              <img src={`https://flagcdn.com/w40/${FLAG_CODE[resolved.home]}.png`} alt={resolved.home} className="w-8 h-auto shadow-sm rounded-sm flex-shrink-0" onError={(e) => (e.currentTarget.style.display = "none")} />
+              <span className="font-bold text-sm sm:text-base truncate">{resolved.home}</span>
             </>
           ) : (
             <span className="text-muted-foreground italic text-sm">Por definir</span>
           )}
         </div>
 
-        <div className="flex-shrink-0 mx-4">
+        <div className="flex-shrink-0 mx-2 sm:mx-4">
           {realResult ? (
-            <div className="flex flex-col items-center bg-black/30 px-4 py-1 rounded-md shadow-inner">
-              <span className="text-3xl font-black tabular-nums tracking-tighter text-primary">
+            <div className="flex flex-col items-center bg-black/30 px-2 sm:px-4 py-1 rounded-md shadow-inner">
+              <span className="text-lg sm:text-3xl font-black tabular-nums tracking-tighter text-primary">
                 {realResult.score[0]} - {realResult.score[1]}
               </span>
               {realResult.penalties && (
@@ -87,11 +87,11 @@ export function KnockoutMatchCard({ match, resolved, realResult, resolvedAll, re
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-3 flex-1 text-right">
+        <div className="flex items-center justify-end gap-1.5 sm:gap-3 flex-1 text-right min-w-0">
           {resolved.away ? (
             <>
-              <span className="font-bold text-base">{resolved.away}</span>
-              <img src={`https://flagcdn.com/w40/${FLAG_CODE[resolved.away]}.png`} alt={resolved.away} className="w-8 h-auto shadow-sm rounded-sm" onError={(e) => (e.currentTarget.style.display = "none")} />
+              <span className="font-bold text-sm sm:text-base truncate">{resolved.away}</span>
+              <img src={`https://flagcdn.com/w40/${FLAG_CODE[resolved.away]}.png`} alt={resolved.away} className="w-8 h-auto shadow-sm rounded-sm flex-shrink-0" onError={(e) => (e.currentTarget.style.display = "none")} />
             </>
           ) : (
             <span className="text-muted-foreground italic text-sm">Por definir</span>
@@ -109,10 +109,16 @@ export function KnockoutMatchCard({ match, resolved, realResult, resolvedAll, re
 
           let homeScore: number | undefined;
           let awayScore: number | undefined;
+          let isPredDraw = false;
+          let penWinner: string | undefined;
 
           if (f && resolved.home && resolved.away) {
             homeScore = getScoreForTeam(f, resolved.home);
             awayScore = getScoreForTeam(f, resolved.away);
+            if (homeScore !== undefined && awayScore !== undefined) {
+              isPredDraw = homeScore === awayScore;
+              penWinner = f.penaltyWinner;
+            }
           }
 
           const scoreKey = homeScore !== undefined && awayScore !== undefined ? `${homeScore}-${awayScore}` : null;
@@ -136,7 +142,16 @@ export function KnockoutMatchCard({ match, resolved, realResult, resolvedAll, re
               <div className="flex items-center gap-1.5">
                 {homeScore !== undefined && awayScore !== undefined ? (
                   <span className="text-xs font-mono tabular-nums">
-                    {homeScore}-{awayScore}
+                    <span className={isPredDraw && penWinner === resolved.home ? "text-yellow-400" : ""}>{homeScore}</span>
+                    {"-"}
+                    <span className={isPredDraw && penWinner === resolved.away ? "text-yellow-400" : ""}>{awayScore}</span>
+                    {isPredDraw && (
+                      <span className="text-muted-foreground">
+                        {realResult?.penalties
+                          ? ` (${realResult.penalties[0]}-${realResult.penalties[1]})`
+                          : penWinner ? ` ${penWinner}` : ""}
+                      </span>
+                    )}
                   </span>
                 ) : breakdown.participantsKnown ? (
                   <span className="text-[10px] text-yellow-400/80 italic">—</span>
