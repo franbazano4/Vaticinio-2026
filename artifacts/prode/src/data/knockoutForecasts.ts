@@ -131,7 +131,7 @@ export const MAV_FORECASTS: Record<string, PlayerForecasts> = {
     M73: { teamA: "Sudáfrica", teamB: "Canadá", scoreA: 0, scoreB: 1 },
     M74: { teamA: "Alemania", teamB: "Paraguay", scoreA: 3, scoreB: 1 },
     M75: { teamA: "Países Bajos", teamB: "Marruecos", scoreA: 1, scoreB: 1, penaltyWinner: "Marruecos" },
-    M76: { teamA: "Brasil", teamB: "Japón", scoreA: 2, scoreB: 2, penaltyWinner: "Brasil" },
+    M76: { teamA: "Brasil", teamB: "Japón", scoreA: 2, scoreB: 0},
     M77: { teamA: "Francia", teamB: "Suecia", scoreA: 2, scoreB: 0 },
     M78: { teamA: "Costa de Marfil", teamB: "Noruega", scoreA: 0, scoreB: 3 },
     M79: { teamA: "México", teamB: "Ecuador", scoreA: 1, scoreB: 1, penaltyWinner: "México" },
