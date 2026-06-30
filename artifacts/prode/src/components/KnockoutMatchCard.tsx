@@ -72,11 +72,13 @@ export function KnockoutMatchCard({ match, resolved, realResult, resolvedAll, re
 
         <div className="flex-shrink-0 mx-4">
           {realResult ? (
-            <div className="text-3xl font-black tabular-nums tracking-tighter bg-black/30 px-4 py-1 rounded-md text-primary shadow-inner">
-              {realResult.score[0]} - {realResult.score[1]}
+            <div className="flex flex-col items-center bg-black/30 px-4 py-1 rounded-md shadow-inner">
+              <span className="text-3xl font-black tabular-nums tracking-tighter text-primary">
+                {realResult.score[0]} - {realResult.score[1]}
+              </span>
               {realResult.penalties && (
-                <span className="text-sm font-normal text-muted-foreground ml-2">
-                  ({realResult.penalties[0]}-{realResult.penalties[1]})
+                <span className="text-xs font-mono text-muted-foreground">
+                  pen. {realResult.penalties[0]}-{realResult.penalties[1]}
                 </span>
               )}
             </div>
