@@ -20,13 +20,6 @@ function teamsMatch(f: MatchForecast | undefined, home?: string, away?: string):
 
 const FIXED_MULTIPLIER: Partial<Record<string, number>> = { F: 2, TP: 0.5 };
 
-/**
- * Calcula el multiplicador del Vaticinio MAV para un partido de Octavos,
- * Cuartos o Semis: arranca en x2 si acertó los participantes de ESE partido,
- * y sube +1 por cada ronda anterior consecutiva también acertada (sin saltear
- * errores). Dieciseisavos nunca otorga ese "+1" porque no es un cruce que se
- * vaticine (ya está definido por la fase de grupos).
- */
 export function calcMavMultiplier(
   matchId: string,
   player: string,
@@ -49,7 +42,6 @@ export function calcMavMultiplier(
       .filter((x): x is string => !!x);
     if (sourceIds.length === 0) break;
     const sourceMatches = sourceIds.map((id) => KNOCKOUT_MATCH_BY_ID[id]);
-    // Dieciseisavos nunca cuenta para la cadena: no fue algo que se "adivinara"
     if (sourceMatches.some((m) => m.round === "R32")) break;
     const allCorrect = sourceIds.every((id) => {
       const r = resolved[id];
@@ -134,7 +126,6 @@ export function calcKnockoutMatchPoints(
 
   // Art. 20 — vaticinar quién pasa
   // Si el partido real se fue a penales, solo puede puntuar quien predijo empate.
-  // Los penales solo cuentan para quien los puso.
   if (realResult.penalties) {
     if (predIsDraw && activeForecast.penaltyWinner === real.winner) {
       base.advancePts = 1;
@@ -148,8 +139,9 @@ export function calcKnockoutMatchPoints(
     }
   }
 
-  // Art. 21 — penales (solo si vaticinó empate y el partido real se definió por penales)
-  if (predIsDraw && realIsDraw && realResult.penalties) {
+  // Art. 21 — penales: solo aplica si el jugador explícitamente vaticinó
+  // los penales (penaltyOptIn: true) y el partido real se fue a penales.
+  if (predIsDraw && realIsDraw && realResult.penalties && activeForecast.penaltyOptIn) {
     const realPenaltyWinner = realResult.penalties[0] > realResult.penalties[1] ? real.home : real.away;
     base.penaltyPts = activeForecast.penaltyWinner === realPenaltyWinner ? 3 : -1;
   }
