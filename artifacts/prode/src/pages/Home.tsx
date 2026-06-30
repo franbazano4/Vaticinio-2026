@@ -1,11 +1,16 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { GlobeButton } from "../components/GlobeButton";
 import { MatchCard } from "../components/MatchCard";
+import { KnockoutMatchCard } from "../components/KnockoutMatchCard";
 import { StandingsTable } from "../components/StandingsTable";
 import { BonusTab } from "../components/BonusTab";
+import { FaseFinalTab } from "../components/FaseFinalTab";
+import { RondaRelampagoTab } from "../components/RondaRelampagoTab";
 import { CalendarDatePicker } from "../components/CalendarDatePicker";
 import { GROUP_MATCHES, GROUPS, PARTICIPANTS, FORECASTS, COLORS } from "../data/constants";
+import { KNOCKOUT_MATCHES, resolveKnockoutBracket, KnockoutResult } from "../data/knockoutBracket";
 import { getGroupStandings, calcPts, calcBonusPoints } from "../lib/logic";
+import { calcPlayerKnockoutTotal, calcRondaRelampagoPoints } from "../lib/knockoutLogic";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -14,6 +19,7 @@ type GruposSubTab = "CLASIFICACION" | "EXTRA_GRUPOS";
 
 export default function Home() {
   const [results, setResults] = useState<Record<string, [number, number]>>({});
+  const [knockoutResults, setKnockoutResults] = useState<Record<string, KnockoutResult>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("PRINCIPAL");
   const [gruposSubTab, setGruposSubTab] = useState<GruposSubTab>("CLASIFICACION");
@@ -22,10 +28,17 @@ export default function Home() {
 
   const fetchResultsFromServer = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/results`);
-      if (res.ok) {
-        const data = await res.json();
+      const [resGroups, resKnockout] = await Promise.all([
+        fetch(`${API_BASE}/api/results`),
+        fetch(`${API_BASE}/api/knockout-results`),
+      ]);
+      if (resGroups.ok) {
+        const data = await resGroups.json();
         setResults(data.results || {});
+      }
+      if (resKnockout.ok) {
+        const data = await resKnockout.json();
+        setKnockoutResults(data.results || {});
       }
     } catch (e) {
       console.error("Failed to fetch results", e);
@@ -40,15 +53,27 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [fetchResultsFromServer]);
 
-  const dates = useMemo(() => Array.from(new Set(GROUP_MATCHES.map(m => m.fecha))).sort(), []);
+  const resolvedBracket = useMemo(() => resolveKnockoutBracket(knockoutResults), [knockoutResults]);
+
+  const dateSortKey = (d: string) => {
+    const [dd, mm] = d.split("/");
+    return `${mm}${dd}`;
+  };
+  const allDates = useMemo(
+    () => Array.from(new Set([...GROUP_MATCHES.map(m => m.fecha), ...KNOCKOUT_MATCHES.map(m => m.fecha)]))
+      .sort((a, b) => dateSortKey(a).localeCompare(dateSortKey(b))),
+    [],
+  );
+  const dates = allDates;
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     const now = new Date();
     const dd = String(now.getDate()).padStart(2, "0");
     const mm = String(now.getMonth() + 1).padStart(2, "0");
     const todayStr = `${dd}/${mm}`;
-    const sorted = Array.from(new Set(GROUP_MATCHES.map(m => m.fecha))).sort();
+    const sorted = Array.from(new Set([...GROUP_MATCHES.map(m => m.fecha), ...KNOCKOUT_MATCHES.map(m => m.fecha)]))
+      .sort((a, b) => dateSortKey(a).localeCompare(dateSortKey(b)));
     if (sorted.includes(todayStr)) return todayStr;
-    return sorted.find(d => d >= todayStr) ?? sorted[sorted.length - 1];
+    return sorted.find(d => dateSortKey(d) >= dateSortKey(todayStr)) ?? sorted[sorted.length - 1];
   });
 
   const groupStandings = useMemo(() => {
@@ -80,10 +105,12 @@ export default function Home() {
         if (pred && real) matchPts += calcPts(pred, real);
       }
       const bonus = calcBonusPoints(p, FORECASTS, results);
-      const pts = matchPts + (isGroupStageComplete ? bonus.total : 0);
-      return { name: p, matchPts, bonus: bonus.total, pts, color: COLORS[i] };
+      const knockout = calcPlayerKnockoutTotal(p, resolvedBracket, knockoutResults);
+      const relampago = calcRondaRelampagoPoints(p, resolvedBracket);
+      const pts = matchPts + (isGroupStageComplete ? bonus.total : 0) + knockout.total + relampago.total;
+      return { name: p, matchPts, bonus: bonus.total, knockoutPts: knockout.total, relampagoPts: relampago.total, pts, color: COLORS[i] };
     }).sort((a, b) => b.pts - a.pts);
-  }, [results, isGroupStageComplete]);
+  }, [results, isGroupStageComplete, resolvedBracket, knockoutResults]);
 
   const TAB_LABELS: Record<Tab, string> = {
     PRINCIPAL: "Principal",
@@ -177,6 +204,18 @@ export default function Home() {
                     .sort((a, b) => a.hora.localeCompare(b.hora))
                     .map(m => (
                       <MatchCard key={m.id} match={m} realResult={results[m.id]} allResults={results} />
+                    ))}
+                  {[...KNOCKOUT_MATCHES.filter(m => m.fecha === selectedDate)]
+                    .sort((a, b) => a.hora.localeCompare(b.hora))
+                    .map(m => (
+                      <KnockoutMatchCard
+                        key={m.id}
+                        match={m}
+                        resolved={resolvedBracket[m.id]}
+                        realResult={knockoutResults[m.id]}
+                        resolvedAll={resolvedBracket}
+                        resultsAll={knockoutResults}
+                      />
                     ))}
                 </div>
               </div>
@@ -292,17 +331,9 @@ export default function Home() {
               </div>
             )}
 
-            {(activeTab === "FASE_FINAL" || activeTab === "RONDA_RELAMPAGO") && (
-              <div className="flex flex-col items-center justify-center py-24 gap-6 text-center">
-                <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
-                  <span className="text-3xl">⚙️</span>
-                </div>
-                <div>
-                  <p className="text-white font-bold text-lg uppercase tracking-wider mb-2">En proceso</p>
-                  <p className="text-muted-foreground text-sm">Estamos trabajando para usted.</p>
-                </div>
-              </div>
-            )}
+            {activeTab === "FASE_FINAL" && <FaseFinalTab knockoutResults={knockoutResults} />}
+
+            {activeTab === "RONDA_RELAMPAGO" && <RondaRelampagoTab knockoutResults={knockoutResults} />}
 
             {activeTab === "REGLAS" && (
               <div className="space-y-4 max-w-2xl mx-auto">
