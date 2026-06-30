@@ -5,6 +5,7 @@ const router = Router();
 
 // In-memory storage instead of PostgreSQL
 let storedResults: Record<string, [number, number]> = {};
+let storedKnockoutResults: Record<string, { score: [number, number]; penalties?: [number, number] }> = {};
 
 const EN_TO_ES: Record<string, string> = {
   "Mexico": "México", "South Africa": "Sudáfrica", "Korea Republic": "Corea del Sur",
@@ -70,6 +71,88 @@ for (const m of GROUP_MATCHES) {
   MATCH_LOOKUP[`${m.home}|${m.away}`] = m.id;
 }
 
+// --- Cuadro eliminatorio (estructura fija, igual a la del frontend) ---
+type MatchSource = { matchId: string; take: "winner" | "loser" };
+interface KOMatchDef {
+  id: string;
+  home?: string;
+  away?: string;
+  homeFrom?: MatchSource;
+  awayFrom?: MatchSource;
+}
+
+const KNOCKOUT_MATCHES: KOMatchDef[] = [
+  { id: "M73", home: "Sudáfrica", away: "Canadá" },
+  { id: "M74", home: "Alemania", away: "Paraguay" },
+  { id: "M75", home: "Países Bajos", away: "Marruecos" },
+  { id: "M76", home: "Brasil", away: "Japón" },
+  { id: "M77", home: "Francia", away: "Suecia" },
+  { id: "M78", home: "Costa de Marfil", away: "Noruega" },
+  { id: "M79", home: "México", away: "Ecuador" },
+  { id: "M80", home: "Inglaterra", away: "R.D. Congo" },
+  { id: "M81", home: "EE.UU.", away: "Bosnia y Herz." },
+  { id: "M82", home: "Bélgica", away: "Senegal" },
+  { id: "M83", home: "Portugal", away: "Croacia" },
+  { id: "M84", home: "España", away: "Austria" },
+  { id: "M85", home: "Suiza", away: "Argelia" },
+  { id: "M86", home: "Argentina", away: "Cabo Verde" },
+  { id: "M87", home: "Colombia", away: "Ghana" },
+  { id: "M88", home: "Australia", away: "Egipto" },
+  { id: "M89", homeFrom: { matchId: "M74", take: "winner" }, awayFrom: { matchId: "M77", take: "winner" } },
+  { id: "M90", homeFrom: { matchId: "M73", take: "winner" }, awayFrom: { matchId: "M75", take: "winner" } },
+  { id: "M91", homeFrom: { matchId: "M76", take: "winner" }, awayFrom: { matchId: "M78", take: "winner" } },
+  { id: "M92", homeFrom: { matchId: "M79", take: "winner" }, awayFrom: { matchId: "M80", take: "winner" } },
+  { id: "M93", homeFrom: { matchId: "M83", take: "winner" }, awayFrom: { matchId: "M84", take: "winner" } },
+  { id: "M94", homeFrom: { matchId: "M81", take: "winner" }, awayFrom: { matchId: "M82", take: "winner" } },
+  { id: "M95", homeFrom: { matchId: "M86", take: "winner" }, awayFrom: { matchId: "M88", take: "winner" } },
+  { id: "M96", homeFrom: { matchId: "M85", take: "winner" }, awayFrom: { matchId: "M87", take: "winner" } },
+  { id: "M97", homeFrom: { matchId: "M89", take: "winner" }, awayFrom: { matchId: "M90", take: "winner" } },
+  { id: "M98", homeFrom: { matchId: "M93", take: "winner" }, awayFrom: { matchId: "M94", take: "winner" } },
+  { id: "M99", homeFrom: { matchId: "M91", take: "winner" }, awayFrom: { matchId: "M92", take: "winner" } },
+  { id: "M100", homeFrom: { matchId: "M95", take: "winner" }, awayFrom: { matchId: "M96", take: "winner" } },
+  { id: "M101", homeFrom: { matchId: "M97", take: "winner" }, awayFrom: { matchId: "M98", take: "winner" } },
+  { id: "M102", homeFrom: { matchId: "M99", take: "winner" }, awayFrom: { matchId: "M100", take: "winner" } },
+  { id: "M103", homeFrom: { matchId: "M101", take: "loser" }, awayFrom: { matchId: "M102", take: "loser" } },
+  { id: "M104", homeFrom: { matchId: "M101", take: "winner" }, awayFrom: { matchId: "M102", take: "winner" } },
+];
+
+function resolveKnockoutLookup(): Record<string, string> {
+  const resolved: Record<string, { home?: string; away?: string; winner?: string; loser?: string }> = {};
+  const resolveTeam = (m: KOMatchDef, side: "home" | "away"): string | undefined => {
+    if (side === "home" && m.home) return m.home;
+    if (side === "away" && m.away) return m.away;
+    const src = side === "home" ? m.homeFrom : m.awayFrom;
+    if (!src) return undefined;
+    const r = resolved[src.matchId];
+    if (!r) return undefined;
+    return src.take === "winner" ? r.winner : r.loser;
+  };
+
+  const lookup: Record<string, string> = {};
+  for (const m of KNOCKOUT_MATCHES) {
+    const home = resolveTeam(m, "home");
+    const away = resolveTeam(m, "away");
+    if (home && away) {
+      lookup[`${home}|${away}`] = m.id;
+      lookup[`${away}|${home}`] = m.id;
+    }
+    const real = storedKnockoutResults[m.id];
+    let winner: string | undefined;
+    let loser: string | undefined;
+    if (real && home && away) {
+      const [h, a] = real.score;
+      if (h > a) { winner = home; loser = away; }
+      else if (h < a) { winner = away; loser = home; }
+      else if (real.penalties) {
+        const [ph, pa] = real.penalties;
+        if (ph > pa) { winner = home; loser = away; } else { winner = away; loser = home; }
+      }
+    }
+    resolved[m.id] = { home, away, winner, loser };
+  }
+  return lookup;
+}
+
 router.get("/results", (_req, res) => {
   res.json({ results: storedResults });
 });
@@ -81,6 +164,20 @@ router.post("/results", (req, res) => {
     res.json({ results: storedResults });
   } catch (err) {
     res.status(500).json({ error: "Failed to save results" });
+  }
+});
+
+router.get("/knockout-results", (_req, res) => {
+  res.json({ results: storedKnockoutResults });
+});
+
+router.post("/knockout-results", (req, res) => {
+  try {
+    const { results } = req.body as { results: Record<string, { score: [number, number]; penalties?: [number, number] }> };
+    storedKnockoutResults = results;
+    res.json({ results: storedKnockoutResults });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to save knockout results" });
   }
 });
 
@@ -107,26 +204,58 @@ router.post("/results/fetch", async (req, res) => {
         status: string;
         homeTeam: { name: string };
         awayTeam: { name: string };
-        score: { fullTime: { home: number | null; away: number | null } };
+        score: {
+          fullTime: { home: number | null; away: number | null };
+          extraTime?: { home: number | null; away: number | null };
+          penalties?: { home: number | null; away: number | null };
+        };
       }>;
     };
 
     let count = 0;
+    let koCount = 0;
+
     for (const match of json.matches) {
       if (match.status !== "FINISHED") continue;
       const homeEs = EN_TO_ES[match.homeTeam.name] ?? match.homeTeam.name;
       const awayEs = EN_TO_ES[match.awayTeam.name] ?? match.awayTeam.name;
-      const matchId = MATCH_LOOKUP[`${homeEs}|${awayEs}`];
-      if (!matchId) continue;
       const h = match.score.fullTime.home;
       const a = match.score.fullTime.away;
       if (h === null || a === null) continue;
-      storedResults[matchId] = [h, a];
-      count++;
+
+      const groupMatchId = MATCH_LOOKUP[`${homeEs}|${awayEs}`];
+      if (groupMatchId) {
+        storedResults[groupMatchId] = [h, a];
+        count++;
+      }
     }
 
-    const message = count > 0 ? `${count} resultados actualizados` : "Sin nuevos resultados";
-    res.json({ results: storedResults, count, message });
+    // Resolver el cuadro eliminatorio dinámicamente (puede requerir varias pasadas
+    // a medida que se van confirmando ganadores de rondas previas)
+    for (let pass = 0; pass < 6; pass++) {
+      const koLookup = resolveKnockoutLookup();
+      for (const match of json.matches) {
+        if (match.status !== "FINISHED") continue;
+        const homeEs = EN_TO_ES[match.homeTeam.name] ?? match.homeTeam.name;
+        const awayEs = EN_TO_ES[match.awayTeam.name] ?? match.awayTeam.name;
+        const h = match.score.fullTime.home;
+        const a = match.score.fullTime.away;
+        if (h === null || a === null) continue;
+        const koMatchId = koLookup[`${homeEs}|${awayEs}`];
+        if (!koMatchId) continue;
+        const ph = match.score.penalties?.home ?? null;
+        const pa = match.score.penalties?.away ?? null;
+        const before = storedKnockoutResults[koMatchId];
+        storedKnockoutResults[koMatchId] = {
+          score: [h, a],
+          penalties: ph !== null && pa !== null ? [ph, pa] : undefined,
+        };
+        if (!before) koCount++;
+      }
+    }
+
+    const message = `${count} resultados de grupos, ${koCount} de fase eliminatoria`;
+    res.json({ results: storedResults, knockoutResults: storedKnockoutResults, count, koCount, message });
   } catch (err) {
     logger.error({ err }, "Failed to fetch results");
     res.status(500).json({ error: String(err) });
