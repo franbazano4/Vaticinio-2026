@@ -122,11 +122,9 @@ export function calcKnockoutMatchPoints(
   base.signPts = calcPts([predHomeScore, predAwayScore], realResult.score);
 
   const predIsDraw = predHomeScore === predAwayScore;
-  const realIsDraw = realResult.score[0] === realResult.score[1];
 
   // Art. 20 — vaticinar quién pasa: +1 para cualquiera que acierte quién avanza,
   // independientemente de si el partido se fue a penales o no.
-  // (Los penales solo restringen Art. 21, no Art. 20)
   const predictedAdvancer = predIsDraw
     ? activeForecast.penaltyWinner
     : (predHomeScore > predAwayScore ? real.home : real.away);
@@ -134,11 +132,17 @@ export function calcKnockoutMatchPoints(
     base.advancePts = 1;
   }
 
-  // Art. 21 — penales: solo aplica si el jugador explícitamente vaticinó
-  // los penales (penaltyOptIn: true) y el partido real se fue a penales.
-  if (predIsDraw && realIsDraw && realResult.penalties && activeForecast.penaltyOptIn) {
-    const realPenaltyWinner = realResult.penalties[0] > realResult.penalties[1] ? real.home : real.away;
-    base.penaltyPts = activeForecast.penaltyWinner === realPenaltyWinner ? 3 : -1;
+  // Art. 21 — penales: aplica cuando el jugador apostó explícitamente por penales
+  // (penaltyOptIn: true). Si el partido fue a penales y acertó el ganador: +3.
+  // En cualquier otro caso (no hubo penales, o hubo pero erró el ganador): -1.
+  if (predIsDraw && activeForecast.penaltyOptIn) {
+    if (realResult.penalties) {
+      const realPenaltyWinner = realResult.penalties[0] > realResult.penalties[1] ? real.home : real.away;
+      base.penaltyPts = activeForecast.penaltyWinner === realPenaltyWinner ? 3 : -1;
+    } else {
+      // El partido no llegó a penales → la apuesta estuvo mal → -1
+      base.penaltyPts = -1;
+    }
   }
 
   base.basePts = base.signPts + base.advancePts + base.penaltyPts;
