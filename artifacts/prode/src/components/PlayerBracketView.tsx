@@ -56,6 +56,7 @@ function MatchBox({ matchId, player }: { matchId: string; player: string }) {
       <div className="divide-y divide-border/40">
         {rows.map((r, idx) => {
           const isWinner = winner === r.team;
+          const wonOnPenalties = isDraw && f.penaltyWinner === r.team;
           return (
             <div key={idx} className={`flex items-center gap-1.5 px-2 py-1.5 ${isWinner ? "bg-primary/10" : ""}`}>
               <Flag team={r.team} />
@@ -64,16 +65,12 @@ function MatchBox({ matchId, player }: { matchId: string; player: string }) {
               </span>
               <span className={`text-xs font-mono font-black tabular-nums ${isWinner ? "text-primary" : "text-muted-foreground"}`}>
                 {r.score}
+                {wonOnPenalties && <span className="text-[9px] font-semibold text-primary/80"> (pen.)</span>}
               </span>
             </div>
           );
         })}
       </div>
-      {isDraw && f.penaltyWinner && (
-        <div className="px-2 py-1 text-[9px] text-muted-foreground bg-black/15 border-t border-border/40">
-          Penales: <span className="text-white font-semibold">{f.penaltyWinner}</span>
-        </div>
-      )}
     </div>
   );
 }
@@ -117,11 +114,6 @@ function BracketNode({ matchId, player }: { matchId: string; player: string }) {
 export function PlayerBracketView({ player }: Props) {
   return (
     <div className="space-y-4">
-      <div className="bg-card border border-border rounded-md px-4 py-2 flex items-center justify-between">
-        <span className="font-bold text-primary font-mono uppercase text-sm">Cuadro vaticinado de {player}</span>
-        <span className="text-[10px] text-muted-foreground italic hidden sm:inline">Solo vaticinio · sin resultado real</span>
-      </div>
-
       <p className="text-[10px] text-muted-foreground/60 italic sm:hidden">Deslizá para ver el cuadro completo →</p>
 
       <div className="overflow-x-auto no-scrollbar -mx-1 px-1 pb-2">
