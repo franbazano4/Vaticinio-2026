@@ -11,6 +11,10 @@ export interface MatchForecast {
   // Solo se completa si el jugador vaticinó un empate en el resultado:
   // a qué equipo le da el pase por penales.
   penaltyWinner?: string;
+  // Marcador vaticinado de la definición por penales (opcional).
+  // penaltyScoreA corresponde a teamA, penaltyScoreB a teamB.
+  penaltyScoreA?: number;
+  penaltyScoreB?: number;
 }
 
 export type PlayerForecasts = Record<string, MatchForecast>;
@@ -54,21 +58,21 @@ export const MAV_FORECASTS: Record<string, PlayerForecasts> = {
     // Tercer puesto
     M103: { teamA: "España", teamB: "Inglaterra", scoreA: 1, scoreB: 2 },
     // Final
-    M104: { teamA: "Argentina", teamB: "Francia", scoreA: 1, scoreB: 1, penaltyWinner: "Argentina" },
+    M104: { teamA: "Argentina", teamB: "Francia", scoreA: 1, scoreB: 1, penaltyWinner: "Argentina", penaltyScoreA: 4, penaltyScoreB: 3 },
   },
 
   Mati: {
     M73: { teamA: "Sudáfrica", teamB: "Canadá", scoreA: 1, scoreB: 2 },
     M74: { teamA: "Alemania", teamB: "Paraguay", scoreA: 3, scoreB: 1 },
     M75: { teamA: "Países Bajos", teamB: "Marruecos", scoreA: 2, scoreB: 1 },
-    M76: { teamA: "Brasil", teamB: "Japón", scoreA: 1, scoreB: 1, penaltyWinner: "Brasil" },
+    M76: { teamA: "Brasil", teamB: "Japón", scoreA: 1, scoreB: 1, penaltyWinner: "Brasil", penaltyScoreA: 5, penaltyScoreB: 4 },
     M77: { teamA: "Francia", teamB: "Suecia", scoreA: 3, scoreB: 0 },
     M78: { teamA: "Costa de Marfil", teamB: "Noruega", scoreA: 1, scoreB: 2 },
     M79: { teamA: "México", teamB: "Ecuador", scoreA: 1, scoreB: 0 },
     M80: { teamA: "Inglaterra", teamB: "R.D. Congo", scoreA: 2, scoreB: 1 },
     M81: { teamA: "EE.UU.", teamB: "Bosnia y Herz.", scoreA: 2, scoreB: 0 },
     M82: { teamA: "Bélgica", teamB: "Senegal", scoreA: 1, scoreB: 2 },
-    M83: { teamA: "Portugal", teamB: "Croacia", scoreA: 1, scoreB: 1, penaltyWinner: "Croacia" },
+    M83: { teamA: "Portugal", teamB: "Croacia", scoreA: 1, scoreB: 1, penaltyWinner: "Croacia", penaltyScoreA: 2, penaltyScoreB: 4 },
     M84: { teamA: "España", teamB: "Austria", scoreA: 2, scoreB: 1 },
     M85: { teamA: "Suiza", teamB: "Argelia", scoreA: 1, scoreB: 0 },
     M86: { teamA: "Argentina", teamB: "Cabo Verde", scoreA: 3, scoreB: 0 },
@@ -93,17 +97,17 @@ export const MAV_FORECASTS: Record<string, PlayerForecasts> = {
   },
 
   Cochi: {
-    M73: { teamA: "Sudáfrica", teamB: "Canadá", scoreA: 0, scoreB: 0, penaltyWinner: "Sudáfrica" },
+    M73: { teamA: "Sudáfrica", teamB: "Canadá", scoreA: 0, scoreB: 0, penaltyWinner: "Sudáfrica", penaltyScoreA: 5, penaltyScoreB: 4 },
     M74: { teamA: "Alemania", teamB: "Paraguay", scoreA: 1, scoreB: 0 },
     M75: { teamA: "Países Bajos", teamB: "Marruecos", scoreA: 2, scoreB: 1 },
     M76: { teamA: "Brasil", teamB: "Japón", scoreA: 2, scoreB: 1 },
     M77: { teamA: "Francia", teamB: "Suecia", scoreA: 3, scoreB: 0 },
     M78: { teamA: "Costa de Marfil", teamB: "Noruega", scoreA: 1, scoreB: 3 },
-    M79: { teamA: "México", teamB: "Ecuador", scoreA: 1, scoreB: 1, penaltyWinner: "Ecuador" },
+    M79: { teamA: "México", teamB: "Ecuador", scoreA: 1, scoreB: 1, penaltyWinner: "Ecuador", penaltyScoreA: 2, penaltyScoreB: 4 },
     M80: { teamA: "Inglaterra", teamB: "R.D. Congo", scoreA: 2, scoreB: 0 },
     M81: { teamA: "EE.UU.", teamB: "Bosnia y Herz.", scoreA: 3, scoreB: 1 },
     M82: { teamA: "Bélgica", teamB: "Senegal", scoreA: 1, scoreB: 0 },
-    M83: { teamA: "Portugal", teamB: "Croacia", scoreA: 2, scoreB: 2, penaltyWinner: "Portugal" },
+    M83: { teamA: "Portugal", teamB: "Croacia", scoreA: 2, scoreB: 2, penaltyWinner: "Portugal", penaltyScoreA: 7, penaltyScoreB: 6 },
     M84: { teamA: "España", teamB: "Austria", scoreA: 2, scoreB: 0 },
     M85: { teamA: "Suiza", teamB: "Argelia", scoreA: 3, scoreB: 2 },
     M86: { teamA: "Argentina", teamB: "Cabo Verde", scoreA: 2, scoreB: 0 },
@@ -112,15 +116,15 @@ export const MAV_FORECASTS: Record<string, PlayerForecasts> = {
     M89: { teamA: "Alemania", teamB: "Francia", scoreA: 1, scoreB: 2 },
     M90: { teamA: "Sudáfrica", teamB: "Países Bajos", scoreA: 0, scoreB: 3 },
     M91: { teamA: "Brasil", teamB: "Noruega", scoreA: 2, scoreB: 1 },
-    M92: { teamA: "Ecuador", teamB: "Inglaterra", scoreA: 1, scoreB: 1, penaltyWinner: "Inglaterra" },
+    M92: { teamA: "Ecuador", teamB: "Inglaterra", scoreA: 1, scoreB: 1, penaltyWinner: "Inglaterra", penaltyScoreA: 2, penaltyScoreB: 4 },
     M93: { teamA: "Portugal", teamB: "España", scoreA: 1, scoreB: 2 },
     M94: { teamA: "EE.UU.", teamB: "Bélgica", scoreA: 2, scoreB: 1 },
     M95: { teamA: "Argentina", teamB: "Egipto", scoreA: 2, scoreB: 1 },
     M96: { teamA: "Suiza", teamB: "Colombia", scoreA: 0, scoreB: 1 },
     M97: { teamA: "Francia", teamB: "Países Bajos", scoreA: 3, scoreB: 1 },
-    M98: { teamA: "España", teamB: "EE.UU.", scoreA: 1, scoreB: 1, penaltyWinner: "EE.UU." },
+    M98: { teamA: "España", teamB: "EE.UU.", scoreA: 1, scoreB: 1, penaltyWinner: "EE.UU.", penaltyScoreA: 4, penaltyScoreB: 5 },
     M99: { teamA: "Brasil", teamB: "Inglaterra", scoreA: 2, scoreB: 1 },
-    M100: { teamA: "Argentina", teamB: "Colombia", scoreA: 1, scoreB: 1, penaltyWinner: "Argentina" },
+    M100: { teamA: "Argentina", teamB: "Colombia", scoreA: 1, scoreB: 1, penaltyWinner: "Argentina", penaltyScoreA: 4, penaltyScoreB: 2 },
     M101: { teamA: "Francia", teamB: "EE.UU.", scoreA: 2, scoreB: 0 },
     M102: { teamA: "Brasil", teamB: "Argentina", scoreA: 0, scoreB: 1 },
     M103: { teamA: "EE.UU.", teamB: "Brasil", scoreA: 0, scoreB: 2 },
