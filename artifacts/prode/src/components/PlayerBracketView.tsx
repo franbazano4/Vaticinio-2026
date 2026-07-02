@@ -41,11 +41,11 @@ function MatchBox({ matchId, player }: { matchId: string; player: string }) {
   }
 
   const winner = pickWinner(f);
-  const rows: Array<{ team: string; score: number }> = [
-    { team: f.teamA, score: f.scoreA },
-    { team: f.teamB, score: f.scoreB },
-  ];
   const isDraw = f.scoreA === f.scoreB;
+  const rows: Array<{ team: string; score: number; penScore?: number }> = [
+    { team: f.teamA, score: f.scoreA, penScore: f.penaltyScoreA },
+    { team: f.teamB, score: f.scoreB, penScore: f.penaltyScoreB },
+  ];
 
   return (
     <div style={{ width: BOX_W }} className="flex-shrink-0 bg-card border border-border rounded-md overflow-hidden shadow-sm">
@@ -56,7 +56,6 @@ function MatchBox({ matchId, player }: { matchId: string; player: string }) {
       <div className="divide-y divide-border/40">
         {rows.map((r, idx) => {
           const isWinner = winner === r.team;
-          const wonOnPenalties = isDraw && f.penaltyWinner === r.team;
           return (
             <div key={idx} className={`flex items-center gap-1.5 px-2 py-1.5 ${isWinner ? "bg-primary/10" : ""}`}>
               <Flag team={r.team} />
@@ -65,7 +64,9 @@ function MatchBox({ matchId, player }: { matchId: string; player: string }) {
               </span>
               <span className={`text-xs font-mono font-black tabular-nums ${isWinner ? "text-primary" : "text-muted-foreground"}`}>
                 {r.score}
-                {wonOnPenalties && <span className="text-[9px] font-semibold text-primary/80"> (pen.)</span>}
+                {isDraw && r.penScore !== undefined && (
+                  <span className="text-[10px] font-bold text-primary/70"> ({r.penScore})</span>
+                )}
               </span>
             </div>
           );
