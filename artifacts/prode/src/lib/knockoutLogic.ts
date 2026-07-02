@@ -132,10 +132,11 @@ export function calcKnockoutMatchPoints(
     base.advancePts = 1;
   }
 
-  // Art. 21 — penales: aplica cuando el jugador apostó explícitamente por penales
-  // (penaltyOptIn: true). Si el partido fue a penales y acertó el ganador: +3.
-  // En cualquier otro caso (no hubo penales, o hubo pero erró el ganador): -1.
-  if (predIsDraw && activeForecast.penaltyOptIn) {
+  // Art. 21 — penales: aplica cuando el jugador vaticinó explícitamente un
+  // ganador de penales (penaltyWinner definido). Si el partido fue a penales
+  // y acertó el ganador: +3. En cualquier otro caso (no hubo penales, o hubo
+  // pero erró el ganador): -1.
+  if (predIsDraw && activeForecast.penaltyWinner) {
     if (realResult.penalties) {
       const realPenaltyWinner = realResult.penalties[0] > realResult.penalties[1] ? real.home : real.away;
       base.penaltyPts = activeForecast.penaltyWinner === realPenaltyWinner ? 3 : -1;
