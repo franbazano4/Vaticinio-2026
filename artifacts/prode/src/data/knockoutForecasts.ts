@@ -189,8 +189,23 @@ export const PODIUM_FORECASTS: Record<string, PodiumForecast> = {
 // (Art. 22 — el pronóstico original sobre un cruce que no ocurrió no es válido).
 // Se va completando a medida que avanza el torneo.
 export const OVERRIDE_FORECASTS: Record<string, Record<string, MatchForecast>> = {
-  Joaco: {},
-  Mati: {},
-  Cochi: {},
-  Fran: {},
+  Joaco: {
+    M89: { teamA: "Paraguay", teamB: "Francia", scoreA: 0, scoreB: 2 },
+    M92: { teamA: "México", teamB: "Inglaterra", scoreA: 0, scoreB: 1 },
+    M94: { teamA: "EE.UU.", teamB: "Bélgica", scoreA: 2, scoreB: 1 },
+  },
+  Mati: {
+    M89: { teamA: "Paraguay", teamB: "Francia", scoreA: 0, scoreB: 2 },
+    M90: { teamA: "Canadá", teamB: "Marruecos", scoreA: 1, scoreB: 3 },
+    M93: { teamA: "Portugal", teamB: "España", scoreA: 1, scoreB: 1, penaltyWinner: "Portugal", penaltyScoreA: 4, penaltyScoreB: 2 },
+    M94: { teamA: "EE.UU.", teamB: "Bélgica", scoreA: 2, scoreB: 1 },
+  },
+  Cochi: {
+    M89: { teamA: "Paraguay", teamB: "Francia", scoreA: 0, scoreB: 3 },
+    M90: { teamA: "Canadá", teamB: "Marruecos", scoreA: 0, scoreB: 3 },
+    M92: { teamA: "México", teamB: "Inglaterra", scoreA: 1, scoreB: 1, penaltyWinner: "Inglaterra", penaltyScoreA: 2, penaltyScoreB: 4 },
+  },
+  Fran: {
+    M89: { teamA: "Francia", teamB: "Paraguay", scoreA: 3, scoreB: 1 },
+  },
 };
