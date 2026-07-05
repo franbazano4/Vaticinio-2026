@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { FLAG_CODE, PARTICIPANTS, COLORS } from "../data/constants";
 import { KnockoutMatchDef, ResolvedMatch, KnockoutResult, ROUND_LABELS } from "../data/knockoutBracket";
-import { MAV_FORECASTS, MatchForecast } from "../data/knockoutForecasts";
+import { MAV_FORECASTS, OVERRIDE_FORECASTS, MatchForecast } from "../data/knockoutForecasts";
 import { calcKnockoutMatchPoints } from "../lib/knockoutLogic";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "";
@@ -69,11 +69,13 @@ export function KnockoutMatchCard({ match, resolved, realResult, resolvedAll, re
 
     const scores = new Set<string>();
     for (const p of PARTICIPANTS) {
-      const f = MAV_FORECASTS[p]?.[match.id];
-      if (f) {
-        const hs = getScoreForTeam(f, resolved.home!);
-        const as_ = getScoreForTeam(f, resolved.away!);
-        if (hs !== undefined && as_ !== undefined) scores.add(`${hs}-${as_}`);
+      const candidates = [MAV_FORECASTS[p]?.[match.id], OVERRIDE_FORECASTS[p]?.[match.id]];
+      for (const f of candidates) {
+        if (f) {
+          const hs = getScoreForTeam(f, resolved.home!);
+          const as_ = getScoreForTeam(f, resolved.away!);
+          if (hs !== undefined && as_ !== undefined) scores.add(`${hs}-${as_}`);
+        }
       }
     }
     if (scores.size === 0) return;
@@ -170,7 +172,7 @@ export function KnockoutMatchCard({ match, resolved, realResult, resolvedAll, re
           }
 
           const scoreKey = homeScore !== undefined && awayScore !== undefined ? `${homeScore}-${awayScore}` : null;
-          const prob = !realResult && probabilities && scoreKey ? probabilities[scoreKey] : null;
+          const prob = !realResult && probabilities && scoreKey ? probabilities[scoreKey] ?? null : null;
 
           let bgClass = "bg-black/20";
           let ptsColor = "text-muted-foreground";
