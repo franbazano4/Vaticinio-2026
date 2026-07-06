@@ -1,5 +1,5 @@
 import { FLAG_CODE } from "../data/constants";
-import { KNOCKOUT_MATCH_BY_ID, ROUND_LABELS, ResolvedMatch } from "../data/knockoutBracket";
+import { KNOCKOUT_MATCH_BY_ID, ROUND_LABELS, ResolvedMatch, KnockoutMatchDef } from "../data/knockoutBracket";
 import { MAV_FORECASTS, MatchForecast } from "../data/knockoutForecasts";
 import { calcMavMultiplier } from "../lib/knockoutLogic";
 
@@ -27,19 +27,48 @@ function pickWinner(f: MatchForecast): string | undefined {
   return f.penaltyWinner;
 }
 
+// ¿Puede "team" todavía llegar a este lado (home/away) de este partido?
+// Recorre la cadena homeFrom/awayFrom hacia atrás hasta toparse con un
+// partido ya jugado (ahí queda fijo quién pasó) o con un cruce de
+// Dieciseisavos (equipos fijos de entrada). Si en el camino un partido ya
+// jugado dice que "team" perdió (o no era parte de ese cruce), el equipo
+// queda descartado para este lado aunque el partido que nos interesa
+// todavía no se haya jugado.
+function canReachSide(match: KnockoutMatchDef, side: "home" | "away", team: string, resolved: Record<string, ResolvedMatch>): boolean {
+  const fixed = side === "home" ? match.home : match.away;
+  if (fixed) return fixed === team;
+  const src = side === "home" ? match.homeFrom : match.awayFrom;
+  if (!src) return false;
+  const srcResolved = resolved[src.matchId];
+  if (srcResolved?.played) {
+    const determined = src.take === "winner" ? srcResolved.winner : srcResolved.loser;
+    return determined === team;
+  }
+  return teamStillAlive(team, src.matchId, resolved);
+}
+
+function teamStillAlive(team: string, matchId: string, resolved: Record<string, ResolvedMatch>): boolean {
+  const match = KNOCKOUT_MATCH_BY_ID[matchId];
+  return canReachSide(match, "home", team, resolved) || canReachSide(match, "away", team, resolved);
+}
+
 // Estado de la cadena MAV para este cruce, en base a lo que ya se sabe del cuadro real:
-// - "impossible": ya sabemos que este cruce específico (estos dos equipos) no puede pasar
-//   (porque alguno de los equipos vaticinados ya quedó eliminado, o ya se jugó y no coincidió).
+// - "impossible": ya sabemos que este cruce específico no puede pasar — o porque ya se
+//   jugó y no coincidió, o porque alguno de los dos equipos vaticinados ya quedó
+//   eliminado en una ronda anterior (aunque este partido en particular no se haya jugado).
 // - "hit": los dos equipos vaticinados son, confirmado, los que juegan este cruce.
-// - "pending": todavía puede pasar (falta que se defina alguno de los dos lados).
-function getMavStatus(forecast: MatchForecast | undefined, real: ResolvedMatch | undefined): "impossible" | "hit" | "pending" {
+// - "pending": todavía puede pasar (ambos equipos vaticinados siguen con vida).
+function getMavStatus(matchId: string, forecast: MatchForecast | undefined, resolved: Record<string, ResolvedMatch>): "impossible" | "hit" | "pending" {
   if (!forecast) return "impossible";
-  const fset = new Set([forecast.teamA, forecast.teamB]);
-  const known = [real?.home, real?.away].filter((t): t is string => Boolean(t));
-  if (known.length === 0) return "pending";
-  if (!known.every((t) => fset.has(t))) return "impossible";
-  if (known.length === 2 && real!.home !== real!.away) return "hit";
-  return "pending";
+  const real = resolved[matchId];
+  if (real?.home && real?.away) {
+    const realSet = new Set([real.home, real.away]);
+    const hit = realSet.size === 2 && realSet.has(forecast.teamA) && realSet.has(forecast.teamB) && forecast.teamA !== forecast.teamB;
+    return hit ? "hit" : "impossible";
+  }
+  const aAlive = teamStillAlive(forecast.teamA, matchId, resolved);
+  const bAlive = teamStillAlive(forecast.teamB, matchId, resolved);
+  return aAlive && bAlive ? "pending" : "impossible";
 }
 
 function MatchBox({ matchId, player, resolved }: { matchId: string; player: string; resolved: Record<string, ResolvedMatch> }) {
@@ -67,7 +96,7 @@ function MatchBox({ matchId, player, resolved }: { matchId: string; player: stri
   // La Final y el Tercer Puesto tienen multiplicador fijo (no dependen de la
   // cadena MAV), así que no se marcan con el código de colores.
   const trackChances = match.round !== "F" && match.round !== "TP";
-  const status = trackChances ? getMavStatus(f, resolved[matchId]) : null;
+  const status = trackChances ? getMavStatus(matchId, f, resolved) : null;
   const multiplier = status === "hit" ? calcMavMultiplier(matchId, player, resolved) : null;
 
   const boxBorderClass =
