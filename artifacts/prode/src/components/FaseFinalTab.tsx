@@ -20,24 +20,26 @@ export function FaseFinalTab({ knockoutResults }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap gap-2 border-b border-border pb-3">
+      <div className="flex border-b border-border overflow-x-auto">
         <button
           onClick={() => setSubTab("CUADROS")}
-          className={`px-3 py-2 text-xs font-bold uppercase tracking-wider rounded transition-colors ${
-            subTab === "CUADROS" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground border border-border hover:text-white"
+          className={`px-4 py-3 text-sm font-bold tracking-wider uppercase transition-colors relative whitespace-nowrap ${
+            subTab === "CUADROS" ? "text-primary" : "text-muted-foreground hover:text-white"
           }`}
         >
-          Cuadros
+          MAV
+          {subTab === "CUADROS" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
         </button>
         {ROUND_TABS.map((r) => (
           <button
             key={r}
             onClick={() => setSubTab(r)}
-            className={`px-3 py-2 text-xs font-bold uppercase tracking-wider rounded transition-colors ${
-              subTab === r ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground border border-border hover:text-white"
+            className={`px-4 py-3 text-sm font-bold tracking-wider uppercase transition-colors relative whitespace-nowrap ${
+              subTab === r ? "text-primary" : "text-muted-foreground hover:text-white"
             }`}
           >
             {ROUND_LABELS[r]}
+            {subTab === r && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
           </button>
         ))}
       </div>
