@@ -41,7 +41,8 @@ function shareKnockoutMatch(
   const awayFlag = countryCodeToEmoji(FLAG_CODE[away] ?? "");
   const lines = [`${homeFlag} vs ${awayFlag}`];
   for (const p of PARTICIPANTS) {
-    const f = MAV_FORECASTS[p]?.[matchId];
+    const bd = calcKnockoutMatchPoints(p, matchId, resolvedAll, resultsAll);
+    const f = bd.activeForecast;
     if (f) {
       const hs = getScoreForTeam(f, home);
       const as_ = getScoreForTeam(f, away);
@@ -51,7 +52,6 @@ function shareKnockoutMatch(
         const probStr = prob !== null && prob !== undefined
           ? ` (${prob < 0.1 ? "<0.1" : prob.toFixed(1)}%)`
           : "";
-        const bd = calcKnockoutMatchPoints(p, matchId, resolvedAll, resultsAll);
         const multStr = bd.multiplier !== 1 ? ` x${bd.multiplier}` : "";
         lines.push(`${p}${multStr}: ${hs}-${as_}${probStr}`);
       }
