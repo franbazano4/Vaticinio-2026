@@ -87,13 +87,36 @@ function AccuracyRow({ entry, showAdvance }: { entry: AccuracyEntry; showAdvance
   );
 }
 
-function pillClass(active: boolean, disabled?: boolean) {
-  if (disabled) return "px-3 h-9 rounded font-bold text-xs bg-card text-muted-foreground/40 border border-border cursor-not-allowed";
-  return `px-3 h-9 rounded font-bold text-xs transition-all ${
-    active
-      ? "bg-primary text-primary-foreground shadow-[0_0_15px_rgba(255,215,0,0.3)]"
-      : "bg-card text-muted-foreground border border-border hover:bg-white/5 hover:text-white"
-  }`;
+interface EvolutionTooltipPayloadEntry {
+  dataKey?: string | number;
+  value?: number;
+  color?: string;
+}
+
+function EvolutionTooltip(props: {
+  active?: boolean;
+  payload?: EvolutionTooltipPayloadEntry[];
+  label?: string;
+}) {
+  const { active, payload, label } = props;
+  if (!active || !payload || payload.length === 0) return null;
+  const sorted = [...payload].sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
+  return (
+    <div style={TOOLTIP_STYLE} className="px-2.5 py-1.5">
+      <div className="font-bold text-white mb-1">{label}</div>
+      <div className="space-y-1">
+        {sorted.map((entry) => (
+          <div key={String(entry.dataKey)} className="flex items-center justify-between gap-4">
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <span className="w-2 h-2 rounded-full inline-block flex-shrink-0" style={{ backgroundColor: entry.color }} />
+              {entry.dataKey}
+            </span>
+            <span className="font-mono font-bold text-white">{entry.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function EstadisticasTab({ results, knockoutResults }: Props) {
@@ -186,7 +209,11 @@ export function EstadisticasTab({ results, knockoutResults }: Props) {
   // ---------- Ranking de % de aciertos (arriba de todo en Precisión) ----------
   const hitRateRanking = useMemo(() => {
     return totalAccuracy
-      .map((e) => ({ ...e, rate: e.played > 0 ? ((e.exact + e.sign) / e.played) * 100 : 0 }))
+      .map((e) => ({
+        ...e,
+        rate: e.played > 0 ? ((e.exact + e.sign) / e.played) * 100 : 0,
+        exactRate: e.played > 0 ? (e.exact / e.played) * 100 : 0,
+      }))
       .sort((a, b) => b.rate - a.rate);
   }, [totalAccuracy]);
 
@@ -253,28 +280,9 @@ export function EstadisticasTab({ results, knockoutResults }: Props) {
     });
   }, [results, knockoutResults]);
 
-  // Índice donde termina la fase de grupos dentro de `evolution` (para los presets de zoom)
-  const groupPhaseEndIndex = useMemo(() => {
-    if (evolution.length === 0) return -1;
-    const lastGroupDateKey = GROUP_MATCHES.reduce((max, m) => {
-      const k = dateSortKey(m.fecha);
-      return k > max ? k : max;
-    }, "");
-    let idx = -1;
-    evolution.forEach((row, i) => {
-      if (dateSortKey(row.fecha as string) <= lastGroupDateKey) idx = i;
-    });
-    return idx;
-  }, [evolution]);
-
   const lastIndex = Math.max(evolution.length - 1, 0);
   const zoomStart = zoomRange ? Math.min(zoomRange[0], lastIndex) : 0;
   const zoomEnd = zoomRange ? Math.min(zoomRange[1], lastIndex) : lastIndex;
-
-  const isTodoActive = zoomRange === null;
-  const isGruposActive = !!zoomRange && zoomRange[0] === 0 && zoomRange[1] === groupPhaseEndIndex;
-  const isFinalActive = !!zoomRange && zoomRange[0] === groupPhaseEndIndex && zoomRange[1] === lastIndex;
-  const faseFinalDisabled = groupPhaseEndIndex < 0 || groupPhaseEndIndex >= lastIndex;
 
   return (
     <div className="space-y-6">
@@ -300,30 +308,13 @@ export function EstadisticasTab({ results, knockoutResults }: Props) {
             <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Evolución de Puntos</h2>
             {evolution.length > 0 ? (
               <div className="space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  <button onClick={() => setZoomRange(null)} className={pillClass(isTodoActive)}>Todo</button>
-                  <button
-                    onClick={() => setZoomRange([0, groupPhaseEndIndex])}
-                    disabled={groupPhaseEndIndex < 0}
-                    className={pillClass(isGruposActive, groupPhaseEndIndex < 0)}
-                  >
-                    Fase de Grupos
-                  </button>
-                  <button
-                    onClick={() => setZoomRange([Math.max(groupPhaseEndIndex, 0), lastIndex])}
-                    disabled={faseFinalDisabled}
-                    className={pillClass(isFinalActive, faseFinalDisabled)}
-                  >
-                    Fase Final
-                  </button>
-                </div>
                 <div className="bg-card border border-border rounded-lg overflow-hidden p-4">
                   <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={evolution} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
                       <XAxis dataKey="fecha" tick={AXIS_TICK} axisLine={{ stroke: GRID_STROKE }} tickLine={false} />
                       <YAxis tick={AXIS_TICK} axisLine={{ stroke: GRID_STROKE }} tickLine={false} />
-                      <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "#fff", fontWeight: 700 }} />
+                      <Tooltip content={(p: any) => <EvolutionTooltip {...p} />} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
                       {PARTICIPANTS.map((p, i) => (
                         <Line key={p} type="monotone" dataKey={p} stroke={COLORS[i]} strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
@@ -347,9 +338,11 @@ export function EstadisticasTab({ results, knockoutResults }: Props) {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-                <p className="text-[11px] text-muted-foreground text-center">
-                  Arrastrá los extremos de la franja inferior del gráfico para acercarte a un período, o usá los botones de arriba.
-                </p>
+                {evolution.length > 1 && (
+                  <p className="text-[11px] text-muted-foreground text-center">
+                    Arrastrá los extremos de la franja inferior del gráfico para acercarte a un período.
+                  </p>
+                )}
               </div>
             ) : (
               <div className="bg-card border border-border rounded-lg p-6 text-center text-sm text-muted-foreground italic">
@@ -413,21 +406,32 @@ export function EstadisticasTab({ results, knockoutResults }: Props) {
       {/* ---------------- PRECISIÓN ---------------- */}
       {subTab === "PRECISION" && (
         <div className="space-y-8">
-          <div className="bg-card border border-border rounded-lg overflow-hidden">
-            <div className="bg-black/30 px-4 py-2 border-b border-border">
-              <p className="text-primary font-bold uppercase tracking-wider text-sm">Porcentaje de Aciertos</p>
-            </div>
-            <div className="divide-y divide-border/50">
-              {hitRateRanking.map((e, idx) => (
-                <div key={e.name} className={`flex items-center gap-3 px-4 py-2.5 ${idx === 0 ? "bg-primary/5" : ""}`}>
-                  <span className={`w-6 text-center font-black font-mono text-sm ${idx === 0 ? "text-primary" : "text-muted-foreground"}`}>{idx + 1}</span>
-                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: e.color }} />
-                  <span className={`flex-1 font-bold uppercase text-sm ${idx === 0 ? "text-white" : "text-muted-foreground"}`}>{e.name}</span>
-                  <span className="text-xs text-muted-foreground">{e.exact + e.sign}/{e.played}</span>
-                  <span className={`font-black text-lg tabular-nums ${idx === 0 ? "text-primary" : "text-white"}`}>{e.rate.toFixed(0)}%</span>
-                </div>
-              ))}
-            </div>
+          <div className="overflow-x-auto bg-card border border-border rounded-md shadow-sm">
+            <table className="w-full text-sm text-center whitespace-nowrap">
+              <thead className="text-xs text-muted-foreground bg-black/40 border-b border-border font-mono uppercase">
+                <tr>
+                  <th className="px-4 py-2 text-left">Jugador</th>
+                  <th className="px-3 py-2">Pronósticos</th>
+                  <th className="px-3 py-2 text-primary">% Acierto</th>
+                  <th className="px-3 py-2">% Exacto</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {hitRateRanking.map((e, idx) => (
+                  <tr key={e.name} className={idx === 0 ? "bg-primary/5" : ""}>
+                    <td className="px-4 py-2.5 text-left font-bold uppercase">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: e.color }} />
+                        {e.name}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5 text-muted-foreground">{e.played}</td>
+                    <td className={`px-3 py-2.5 font-black text-base ${idx === 0 ? "text-primary" : "text-white"}`}>{e.rate.toFixed(0)}%</td>
+                    <td className="px-3 py-2.5 text-green-400 font-bold">{e.exactRate.toFixed(0)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
           <div className="space-y-4">
