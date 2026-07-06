@@ -60,7 +60,7 @@ export function FaseFinalTab({ knockoutResults }: Props) {
               </button>
             ))}
           </div>
-          <PlayerBracketView player={selectedPlayer} />
+          <PlayerBracketView player={selectedPlayer} resolved={resolved} />
         </div>
       )}
 
