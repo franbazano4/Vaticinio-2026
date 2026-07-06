@@ -37,11 +37,6 @@ export function RondaRelampagoTab({ knockoutResults }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-primary/10 border border-primary/30 p-4 rounded-md text-sm text-primary">
-        <p className="font-bold mb-1">Ronda Relámpago</p>
-        <p>Vaticinio del podio del torneo (1°, 2° y 3° puesto), cargado junto con el MAV. Art. 23/24bis/24tris: +3 el tercero, +2 el segundo, +1 el campeón.</p>
-      </div>
-
       <div className="bg-card border border-border rounded-md overflow-hidden">
         <div className="bg-black/30 px-4 py-2 border-b border-border">
           <span className="font-bold text-primary font-mono uppercase text-sm">Resultado real</span>
@@ -66,36 +61,50 @@ export function RondaRelampagoTab({ knockoutResults }: Props) {
         <table className="w-full text-sm text-left whitespace-nowrap">
           <thead className="text-xs text-muted-foreground bg-black/40 border-b border-border font-mono uppercase">
             <tr>
-              <th className="px-4 py-2">Jugador</th>
-              <th className="px-3 py-2 text-center">1°</th>
-              <th className="px-3 py-2 text-center">2°</th>
-              <th className="px-3 py-2 text-center">3°</th>
-              <th className="px-3 py-2 text-center text-primary">PTS</th>
+              <th className="px-4 py-2">Puesto</th>
+              {rows.map(({ name, color }) => (
+                <th key={name} className="px-3 py-2 text-center">
+                  <div className="flex items-center justify-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                    {name}
+                  </div>
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-border/50">
-            {rows.map(({ name, color, podium, score }) => (
-              <tr key={name} className="hover:bg-white/5 transition-colors">
-                <td className="px-4 py-2.5">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                    <span className="font-bold">{name}</span>
-                  </div>
-                </td>
-                <td className={`px-3 py-2.5 text-center ${score.championPts > 0 ? "text-green-400 font-bold" : ""}`}>
+            <tr className="hover:bg-white/5 transition-colors">
+              <td className="px-4 py-2.5 font-bold">1°</td>
+              {rows.map(({ name, podium, score }) => (
+                <td key={name} className={`px-3 py-2.5 text-center ${score.championPts > 0 ? "text-green-400 font-bold" : ""}`}>
                   <FlagName name={podium?.first} />
                 </td>
-                <td className={`px-3 py-2.5 text-center ${score.runnerUpPts > 0 ? "text-green-400 font-bold" : ""}`}>
+              ))}
+            </tr>
+            <tr className="hover:bg-white/5 transition-colors">
+              <td className="px-4 py-2.5 font-bold">2°</td>
+              {rows.map(({ name, podium, score }) => (
+                <td key={name} className={`px-3 py-2.5 text-center ${score.runnerUpPts > 0 ? "text-green-400 font-bold" : ""}`}>
                   <FlagName name={podium?.second} />
                 </td>
-                <td className={`px-3 py-2.5 text-center ${score.thirdPts > 0 ? "text-green-400 font-bold" : ""}`}>
+              ))}
+            </tr>
+            <tr className="hover:bg-white/5 transition-colors">
+              <td className="px-4 py-2.5 font-bold">3°</td>
+              {rows.map(({ name, podium, score }) => (
+                <td key={name} className={`px-3 py-2.5 text-center ${score.thirdPts > 0 ? "text-green-400 font-bold" : ""}`}>
                   <FlagName name={podium?.third} />
                 </td>
-                <td className="px-3 py-2.5 text-center font-black text-white bg-black/20">
+              ))}
+            </tr>
+            <tr className="hover:bg-white/5 transition-colors">
+              <td className="px-4 py-2.5 font-bold text-primary">PTS</td>
+              {rows.map(({ name, score }) => (
+                <td key={name} className="px-3 py-2.5 text-center font-black text-white bg-black/20">
                   {score.resolved ? score.total : "—"}
                 </td>
-              </tr>
-            ))}
+              ))}
+            </tr>
           </tbody>
         </table>
       </div>
