@@ -392,6 +392,92 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
+
+                <div className="bg-card border border-border rounded-lg overflow-hidden">
+                  <div className="bg-black/30 px-4 py-2 border-b border-border">
+                    <p className="text-primary font-bold uppercase tracking-wider text-sm">Fase eliminatoria — Resultados</p>
+                  </div>
+                  <div className="divide-y divide-border/50">
+                    <div className="px-4 py-3 flex items-start gap-4">
+                      <span className="text-yellow-400 font-black text-lg w-10 text-center flex-shrink-0">+1</span>
+                      <div>
+                        <p className="text-white font-bold text-sm">Art. 20 — Quién pasa</p>
+                        <p className="text-muted-foreground text-xs mt-0.5">Acertar el equipo que avanza de fase, sea en tiempo regular o por penales. No arriesga nada.</p>
+                      </div>
+                    </div>
+                    <div className="px-4 py-3 flex items-start gap-4">
+                      <span className="text-lg w-10 text-center flex-shrink-0"><span className="text-green-400 font-black">+3</span><span className="text-muted-foreground/60 font-black">/</span><span className="text-red-400 font-black">−1</span></span>
+                      <div>
+                        <p className="text-white font-bold text-sm">Art. 21 — Penales</p>
+                        <p className="text-muted-foreground text-xs mt-0.5">Solo aplica si vaticinaste empate y además te animaste a poner un marcador de penales. Si acertás el ganador de los penales sumás +3; si el partido no termina en penales o penan otro ganador, restás 1. Poner solo quién pasa en los penales (sin marcador) no arriesga nada — eso ya lo cubre el Art. 20.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-card border border-border rounded-lg overflow-hidden">
+                  <div className="bg-black/30 px-4 py-2 border-b border-border">
+                    <p className="text-primary font-bold uppercase tracking-wider text-sm">Vaticinio MAV — Multiplicador</p>
+                  </div>
+                  <div className="divide-y divide-border/50">
+                    <div className="px-4 py-3">
+                      <p className="text-white font-bold text-sm mb-1">Art. 22 / 22bis — Cadena de aciertos</p>
+                      <p className="text-muted-foreground text-xs">
+                        El MAV es el pronóstico de todo el cuadro eliminatorio, cargado antes de que arranque la fase final. Cada partido (salvo Dieciseisavos, Final y Tercer Puesto) suma los puntos de resultado (Art. 16/17) más los de Art. 20/21, todo multiplicado según cuánto acertaste de la cadena que llevó a ese cruce:
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded border border-primary/20">Dieciseisavos → x1 (nunca multiplica)</span>
+                        <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded border border-primary/20">Acierto directo del cruce → x2</span>
+                        <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded border border-primary/20">+ acertás también los 2 partidos anteriores → x3</span>
+                        <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded border border-primary/20">+ acertás toda la cadena hasta Octavos → x4 (tope)</span>
+                      </div>
+                      <p className="text-muted-foreground text-xs mt-2">Si en algún punto de la cadena falla un cruce (o esa cadena llega a Dieciseisavos), el multiplicador deja de crecer ahí. Si no acertás quiénes juegan el cruce, tu vaticinio original queda "roto" y podés re-vaticinar ese partido en adelante (Art. 22 bis), pero ya sin el multiplicador de cadena.</p>
+                    </div>
+                    <div className="px-4 py-3 flex items-start gap-4">
+                      <span className="text-green-400 font-black text-lg w-10 text-center flex-shrink-0">x2</span>
+                      <div>
+                        <p className="text-white font-bold text-sm">Art. 26 — Final</p>
+                        <p className="text-muted-foreground text-xs mt-0.5">El resultado del partido final suma el doble de los puntos estipulados (multiplicador fijo, no depende de la cadena).</p>
+                      </div>
+                    </div>
+                    <div className="px-4 py-3 flex items-start gap-4">
+                      <span className="text-yellow-400 font-black text-lg w-10 text-center flex-shrink-0">x0.5</span>
+                      <div>
+                        <p className="text-white font-bold text-sm">Art. 27 — Tercer puesto</p>
+                        <p className="text-muted-foreground text-xs mt-0.5">El resultado del partido por el tercer puesto suma la mitad de los puntos estipulados (multiplicador fijo).</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-card border border-border rounded-lg overflow-hidden">
+                  <div className="bg-black/30 px-4 py-2 border-b border-border">
+                    <p className="text-primary font-bold uppercase tracking-wider text-sm">Ronda Relámpago — Podio final</p>
+                  </div>
+                  <div className="divide-y divide-border/50">
+                    <div className="px-4 py-3 flex items-start gap-4">
+                      <span className="text-yellow-400 font-black text-lg w-10 text-center flex-shrink-0">+1</span>
+                      <div>
+                        <p className="text-white font-bold text-sm">Art. 24 tris — Campeón</p>
+                        <p className="text-muted-foreground text-xs mt-0.5">Acertar quién sale campeón del torneo.</p>
+                      </div>
+                    </div>
+                    <div className="px-4 py-3 flex items-start gap-4">
+                      <span className="text-yellow-400 font-black text-lg w-10 text-center flex-shrink-0">+2</span>
+                      <div>
+                        <p className="text-white font-bold text-sm">Art. 24 bis — Subcampeón</p>
+                        <p className="text-muted-foreground text-xs mt-0.5">Acertar quién sale segundo (el perdedor de la final).</p>
+                      </div>
+                    </div>
+                    <div className="px-4 py-3 flex items-start gap-4">
+                      <span className="text-green-400 font-black text-lg w-10 text-center flex-shrink-0">+3</span>
+                      <div>
+                        <p className="text-white font-bold text-sm">Art. 23 — Tercer puesto</p>
+                        <p className="text-muted-foreground text-xs mt-0.5">Acertar quién sale tercero. Se vaticina junto con el MAV, antes de empezar la fase final.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
