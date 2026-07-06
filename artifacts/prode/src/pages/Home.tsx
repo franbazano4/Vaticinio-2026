@@ -6,6 +6,7 @@ import { StandingsTable } from "../components/StandingsTable";
 import { BonusTab } from "../components/BonusTab";
 import { FaseFinalTab } from "../components/FaseFinalTab";
 import { RondaRelampagoTab } from "../components/RondaRelampagoTab";
+import { EstadisticasTab } from "../components/EstadisticasTab";
 import { CalendarDatePicker } from "../components/CalendarDatePicker";
 import { GROUP_MATCHES, GROUPS, PARTICIPANTS, FORECASTS, COLORS } from "../data/constants";
 import { KNOCKOUT_MATCHES, resolveKnockoutBracket, KnockoutResult } from "../data/knockoutBracket";
@@ -14,7 +15,7 @@ import { calcPlayerKnockoutTotal, calcRondaRelampagoPoints } from "../lib/knocko
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
-type Tab = "PRINCIPAL" | "GRUPOS" | "FASE_FINAL" | "RONDA_RELAMPAGO" | "REGLAS";
+type Tab = "PRINCIPAL" | "GRUPOS" | "FASE_FINAL" | "RONDA_RELAMPAGO" | "ESTADISTICAS" | "REGLAS";
 type GruposSubTab = "CLASIFICACION" | "EXTRA_GRUPOS";
 
 export default function Home() {
@@ -117,6 +118,7 @@ export default function Home() {
     GRUPOS: "Grupos",
     FASE_FINAL: "Fase Final",
     RONDA_RELAMPAGO: "Ronda Relámpago",
+    ESTADISTICAS: "Estadísticas",
     REGLAS: "Reglas",
   };
 
@@ -152,7 +154,7 @@ export default function Home() {
             className="absolute top-[73px] right-4 bg-card border border-border rounded-lg shadow-2xl overflow-hidden w-52"
             onClick={e => e.stopPropagation()}
           >
-            {(["PRINCIPAL", "GRUPOS", "FASE_FINAL", "RONDA_RELAMPAGO", "REGLAS"] as Tab[]).map(tab => (
+            {(["PRINCIPAL", "GRUPOS", "FASE_FINAL", "RONDA_RELAMPAGO", "ESTADISTICAS", "REGLAS"] as Tab[]).map(tab => (
               <button
                 key={tab}
                 onClick={() => navigateTo(tab)}
@@ -334,6 +336,8 @@ export default function Home() {
             {activeTab === "FASE_FINAL" && <FaseFinalTab knockoutResults={knockoutResults} />}
 
             {activeTab === "RONDA_RELAMPAGO" && <RondaRelampagoTab knockoutResults={knockoutResults} />}
+
+            {activeTab === "ESTADISTICAS" && <EstadisticasTab results={results} knockoutResults={knockoutResults} />}
 
             {activeTab === "REGLAS" && (
               <div className="space-y-4 max-w-2xl mx-auto">
