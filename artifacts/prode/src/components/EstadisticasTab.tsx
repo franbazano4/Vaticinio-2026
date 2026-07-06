@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -10,6 +10,7 @@ import {
   Legend,
   LineChart,
   Line,
+  Brush,
 } from "recharts";
 import { PARTICIPANTS, COLORS, FORECASTS, GROUP_MATCHES } from "../data/constants";
 import { KNOCKOUT_MATCHES, KNOCKOUT_MATCH_BY_ID, resolveKnockoutBracket, KnockoutResult } from "../data/knockoutBracket";
@@ -20,6 +21,13 @@ interface Props {
   results: Record<string, [number, number]>;
   knockoutResults: Record<string, KnockoutResult>;
 }
+
+type StatsSubTab = "TOTALES" | "PRECISION" | "MAV";
+const SUBTAB_LABELS: Record<StatsSubTab, string> = {
+  TOTALES: "Totales",
+  PRECISION: "Precisión",
+  MAV: "MAV",
+};
 
 const dateSortKey = (d: string) => {
   const [dd, mm] = d.split("/");
@@ -35,11 +43,67 @@ const TOOLTIP_STYLE = {
 const AXIS_TICK = { fill: "#8b8b93", fontSize: 11 };
 const GRID_STROKE = "rgba(255,255,255,0.08)";
 
+interface AccuracyEntry {
+  name: string;
+  color: string;
+  exact: number;
+  sign: number;
+  miss: number;
+  played: number;
+  advanceHits?: number;
+  advanceTotal?: number;
+}
+
+function AccuracyRow({ entry, showAdvance }: { entry: AccuracyEntry; showAdvance?: boolean }) {
+  return (
+    <div className="px-4 py-3">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="font-bold uppercase text-sm text-white flex items-center gap-2">
+          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
+          {entry.name}
+        </span>
+        <span className="text-xs text-muted-foreground">{entry.played} pronósticos</span>
+      </div>
+      {entry.played > 0 ? (
+        <>
+          <div className="w-full h-3 rounded-full overflow-hidden bg-black/30 flex">
+            <div className="h-full bg-green-400" style={{ width: `${(entry.exact / entry.played) * 100}%` }} />
+            <div className="h-full bg-yellow-400" style={{ width: `${(entry.sign / entry.played) * 100}%` }} />
+            <div className="h-full bg-red-400/70" style={{ width: `${(entry.miss / entry.played) * 100}%` }} />
+          </div>
+          <div className="flex gap-4 mt-1.5 text-[11px] text-muted-foreground flex-wrap">
+            <span><span className="text-green-400 font-bold">{entry.exact}</span> exactos</span>
+            <span><span className="text-yellow-400 font-bold">{entry.sign}</span> solo signo</span>
+            <span><span className="text-red-400 font-bold">{entry.miss}</span> fallados</span>
+            {showAdvance && entry.advanceTotal ? (
+              <span><span className="text-primary font-bold">{entry.advanceHits}/{entry.advanceTotal}</span> quién pasa (Art. 20)</span>
+            ) : null}
+          </div>
+        </>
+      ) : (
+        <p className="text-xs text-muted-foreground italic">Sin pronósticos jugados aún</p>
+      )}
+    </div>
+  );
+}
+
+function pillClass(active: boolean, disabled?: boolean) {
+  if (disabled) return "px-3 h-9 rounded font-bold text-xs bg-card text-muted-foreground/40 border border-border cursor-not-allowed";
+  return `px-3 h-9 rounded font-bold text-xs transition-all ${
+    active
+      ? "bg-primary text-primary-foreground shadow-[0_0_15px_rgba(255,215,0,0.3)]"
+      : "bg-card text-muted-foreground border border-border hover:bg-white/5 hover:text-white"
+  }`;
+}
+
 export function EstadisticasTab({ results, knockoutResults }: Props) {
+  const [subTab, setSubTab] = useState<StatsSubTab>("TOTALES");
+  const [zoomRange, setZoomRange] = useState<[number, number] | null>(null);
+
   const resolved = useMemo(() => resolveKnockoutBracket(knockoutResults), [knockoutResults]);
   const isGroupStageComplete = useMemo(() => Object.keys(results).length >= 72, [results]);
 
-  // ---------- 1. Resumen general ----------
+  // ---------- Resumen general (totales por jugador) ----------
   const summary = useMemo(() => {
     return PARTICIPANTS.map((p, i) => {
       let matchPts = 0;
@@ -66,8 +130,8 @@ export function EstadisticasTab({ results, knockoutResults }: Props) {
     }).sort((a, b) => b.total - a.total);
   }, [results, knockoutResults, resolved, isGroupStageComplete]);
 
-  // ---------- 2. Precisión — Fase de grupos ----------
-  const groupAccuracy = useMemo(() => {
+  // ---------- Precisión — Fase de grupos ----------
+  const groupAccuracy: AccuracyEntry[] = useMemo(() => {
     return PARTICIPANTS.map((p, i) => {
       let exact = 0, sign = 0, miss = 0, played = 0;
       for (const m of GROUP_MATCHES) {
@@ -84,8 +148,8 @@ export function EstadisticasTab({ results, knockoutResults }: Props) {
     });
   }, [results]);
 
-  // ---------- 3. Precisión — Fase eliminatoria ----------
-  const knockoutAccuracy = useMemo(() => {
+  // ---------- Precisión — Fase eliminatoria ----------
+  const knockoutAccuracy: AccuracyEntry[] = useMemo(() => {
     return summary.map(({ name, color, knockoutByMatch }) => {
       let exact = 0, sign = 0, miss = 0, played = 0, advanceHits = 0, advanceTotal = 0;
       Object.values(knockoutByMatch).forEach((b) => {
@@ -101,7 +165,32 @@ export function EstadisticasTab({ results, knockoutResults }: Props) {
     });
   }, [summary]);
 
-  // ---------- 4. Cadena MAV ----------
+  // ---------- Precisión — Total (grupos + eliminatoria combinados) ----------
+  const totalAccuracy: AccuracyEntry[] = useMemo(() => {
+    return PARTICIPANTS.map((p, i) => {
+      const g = groupAccuracy.find((x) => x.name === p)!;
+      const k = knockoutAccuracy.find((x) => x.name === p)!;
+      return {
+        name: p,
+        color: COLORS[i],
+        exact: g.exact + k.exact,
+        sign: g.sign + k.sign,
+        miss: g.miss + k.miss,
+        played: g.played + k.played,
+        advanceHits: k.advanceHits,
+        advanceTotal: k.advanceTotal,
+      };
+    });
+  }, [groupAccuracy, knockoutAccuracy]);
+
+  // ---------- Ranking de % de aciertos (arriba de todo en Precisión) ----------
+  const hitRateRanking = useMemo(() => {
+    return totalAccuracy
+      .map((e) => ({ ...e, rate: e.played > 0 ? ((e.exact + e.sign) / e.played) * 100 : 0 }))
+      .sort((a, b) => b.rate - a.rate);
+  }, [totalAccuracy]);
+
+  // ---------- Cadena MAV ----------
   const mavStats = useMemo(() => {
     return summary.map(({ name, color, knockoutByMatch }) => {
       const dist: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
@@ -122,7 +211,7 @@ export function EstadisticasTab({ results, knockoutResults }: Props) {
     });
   }, [summary]);
 
-  // ---------- 5. Evolución de puntos ----------
+  // ---------- Evolución de puntos ----------
   const evolution = useMemo(() => {
     const allDates = Array.from(
       new Set([...GROUP_MATCHES.map((m) => m.fecha), ...KNOCKOUT_MATCHES.map((m) => m.fecha)])
@@ -164,198 +253,268 @@ export function EstadisticasTab({ results, knockoutResults }: Props) {
     });
   }, [results, knockoutResults]);
 
+  // Índice donde termina la fase de grupos dentro de `evolution` (para los presets de zoom)
+  const groupPhaseEndIndex = useMemo(() => {
+    if (evolution.length === 0) return -1;
+    const lastGroupDateKey = GROUP_MATCHES.reduce((max, m) => {
+      const k = dateSortKey(m.fecha);
+      return k > max ? k : max;
+    }, "");
+    let idx = -1;
+    evolution.forEach((row, i) => {
+      if (dateSortKey(row.fecha as string) <= lastGroupDateKey) idx = i;
+    });
+    return idx;
+  }, [evolution]);
+
+  const lastIndex = Math.max(evolution.length - 1, 0);
+  const zoomStart = zoomRange ? Math.min(zoomRange[0], lastIndex) : 0;
+  const zoomEnd = zoomRange ? Math.min(zoomRange[1], lastIndex) : lastIndex;
+
+  const isTodoActive = zoomRange === null;
+  const isGruposActive = !!zoomRange && zoomRange[0] === 0 && zoomRange[1] === groupPhaseEndIndex;
+  const isFinalActive = !!zoomRange && zoomRange[0] === groupPhaseEndIndex && zoomRange[1] === lastIndex;
+  const faseFinalDisabled = groupPhaseEndIndex < 0 || groupPhaseEndIndex >= lastIndex;
+
   return (
-    <div className="space-y-8">
-      {/* Resumen general */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Resumen General</h2>
-        <div className="bg-card border border-border rounded-lg overflow-hidden p-4">
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={summary} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
-              <XAxis dataKey="name" tick={AXIS_TICK} axisLine={{ stroke: GRID_STROKE }} tickLine={false} />
-              <YAxis tick={AXIS_TICK} axisLine={{ stroke: GRID_STROKE }} tickLine={false} />
-              <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "#fff", fontWeight: 700 }} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="Grupos" stackId="a" fill="#00BFFF" />
-              <Bar dataKey="Bonus" stackId="a" fill="#98FB98" />
-              <Bar dataKey="Fase Final" stackId="a" fill="#FFD700" />
-              <Bar dataKey="Ronda Relámpago" stackId="a" fill="#FF6B6B" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="overflow-x-auto bg-card border border-border rounded-md shadow-sm">
-          <table className="w-full text-sm text-center whitespace-nowrap">
-            <thead className="text-xs text-muted-foreground bg-black/40 border-b border-border font-mono uppercase">
-              <tr>
-                <th className="px-4 py-2 text-left">Jugador</th>
-                <th className="px-3 py-2">Grupos</th>
-                <th className="px-3 py-2">Bonus</th>
-                <th className="px-3 py-2">Fase Final</th>
-                <th className="px-3 py-2">R. Relámpago</th>
-                <th className="px-3 py-2 text-primary">Total</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/50">
-              {summary.map((s, idx) => (
-                <tr key={s.name} className={idx === 0 ? "bg-primary/5" : ""}>
-                  <td className="px-4 py-2.5 text-left font-bold uppercase">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
-                      {s.name}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{s.Grupos}</td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{s.Bonus}</td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{s["Fase Final"]}</td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{s["Ronda Relámpago"]}</td>
-                  <td className="px-3 py-2.5 font-black text-white text-base">{s.total}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+    <div className="space-y-6">
+      <div className="flex border-b border-border overflow-x-auto">
+        {(["TOTALES", "PRECISION", "MAV"] as StatsSubTab[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => setSubTab(t)}
+            className={`px-4 py-3 text-sm font-bold tracking-wider uppercase transition-colors relative whitespace-nowrap ${
+              subTab === t ? "text-primary" : "text-muted-foreground hover:text-white"
+            }`}
+          >
+            {SUBTAB_LABELS[t]}
+            {subTab === t && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
+          </button>
+        ))}
       </div>
 
-      {/* Evolución de puntos */}
-      {evolution.length > 1 && (
-        <div className="space-y-4">
-          <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Evolución de Puntos</h2>
-          <div className="bg-card border border-border rounded-lg overflow-hidden p-4">
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={evolution} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
-                <XAxis dataKey="fecha" tick={AXIS_TICK} axisLine={{ stroke: GRID_STROKE }} tickLine={false} />
-                <YAxis tick={AXIS_TICK} axisLine={{ stroke: GRID_STROKE }} tickLine={false} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "#fff", fontWeight: 700 }} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                {PARTICIPANTS.map((p, i) => (
-                  <Line key={p} type="monotone" dataKey={p} stroke={COLORS[i]} strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
+      {/* ---------------- TOTALES ---------------- */}
+      {subTab === "TOTALES" && (
+        <div className="space-y-8">
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Evolución de Puntos</h2>
+            {evolution.length > 0 ? (
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => setZoomRange(null)} className={pillClass(isTodoActive)}>Todo</button>
+                  <button
+                    onClick={() => setZoomRange([0, groupPhaseEndIndex])}
+                    disabled={groupPhaseEndIndex < 0}
+                    className={pillClass(isGruposActive, groupPhaseEndIndex < 0)}
+                  >
+                    Fase de Grupos
+                  </button>
+                  <button
+                    onClick={() => setZoomRange([Math.max(groupPhaseEndIndex, 0), lastIndex])}
+                    disabled={faseFinalDisabled}
+                    className={pillClass(isFinalActive, faseFinalDisabled)}
+                  >
+                    Fase Final
+                  </button>
+                </div>
+                <div className="bg-card border border-border rounded-lg overflow-hidden p-4">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={evolution} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
+                      <XAxis dataKey="fecha" tick={AXIS_TICK} axisLine={{ stroke: GRID_STROKE }} tickLine={false} />
+                      <YAxis tick={AXIS_TICK} axisLine={{ stroke: GRID_STROKE }} tickLine={false} />
+                      <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "#fff", fontWeight: 700 }} />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      {PARTICIPANTS.map((p, i) => (
+                        <Line key={p} type="monotone" dataKey={p} stroke={COLORS[i]} strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
+                      ))}
+                      {evolution.length > 1 && (
+                        <Brush
+                          dataKey="fecha"
+                          height={26}
+                          stroke="#FFD700"
+                          fill="rgba(255,255,255,0.03)"
+                          travellerWidth={8}
+                          startIndex={zoomStart}
+                          endIndex={zoomEnd}
+                          onChange={(r) => {
+                            if (r && typeof r.startIndex === "number" && typeof r.endIndex === "number") {
+                              setZoomRange([r.startIndex, r.endIndex]);
+                            }
+                          }}
+                        />
+                      )}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <p className="text-[11px] text-muted-foreground text-center">
+                  Arrastrá los extremos de la franja inferior del gráfico para acercarte a un período, o usá los botones de arriba.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-card border border-border rounded-lg p-6 text-center text-sm text-muted-foreground italic">
+                Sin resultados cargados todavía.
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">De dónde suma cada uno</h2>
+            <div className="bg-card border border-border rounded-lg overflow-hidden p-4">
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={summary} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
+                  <XAxis dataKey="name" tick={AXIS_TICK} axisLine={{ stroke: GRID_STROKE }} tickLine={false} />
+                  <YAxis tick={AXIS_TICK} axisLine={{ stroke: GRID_STROKE }} tickLine={false} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "#fff", fontWeight: 700 }} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="Grupos" stackId="a" fill="#00BFFF" />
+                  <Bar dataKey="Bonus" stackId="a" fill="#98FB98" />
+                  <Bar dataKey="Fase Final" stackId="a" fill="#FFD700" />
+                  <Bar dataKey="Ronda Relámpago" stackId="a" fill="#FF6B6B" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="overflow-x-auto bg-card border border-border rounded-md shadow-sm">
+              <table className="w-full text-sm text-center whitespace-nowrap">
+                <thead className="text-xs text-muted-foreground bg-black/40 border-b border-border font-mono uppercase">
+                  <tr>
+                    <th className="px-4 py-2 text-left">Jugador</th>
+                    <th className="px-3 py-2">Grupos</th>
+                    <th className="px-3 py-2">Bonus</th>
+                    <th className="px-3 py-2">Fase Final</th>
+                    <th className="px-3 py-2">R. Relámpago</th>
+                    <th className="px-3 py-2 text-primary">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/50">
+                  {summary.map((s, idx) => (
+                    <tr key={s.name} className={idx === 0 ? "bg-primary/5" : ""}>
+                      <td className="px-4 py-2.5 text-left font-bold uppercase">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
+                          {s.name}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 text-muted-foreground">{s.Grupos}</td>
+                      <td className="px-3 py-2.5 text-muted-foreground">{s.Bonus}</td>
+                      <td className="px-3 py-2.5 text-muted-foreground">{s["Fase Final"]}</td>
+                      <td className="px-3 py-2.5 text-muted-foreground">{s["Ronda Relámpago"]}</td>
+                      <td className="px-3 py-2.5 font-black text-white text-base">{s.total}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Precisión de pronósticos */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Precisión de Pronósticos</h2>
-
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
-          <div className="bg-black/30 px-4 py-2 border-b border-border">
-            <p className="text-primary font-bold uppercase tracking-wider text-sm">Fase de Grupos</p>
+      {/* ---------------- PRECISIÓN ---------------- */}
+      {subTab === "PRECISION" && (
+        <div className="space-y-8">
+          <div className="bg-card border border-border rounded-lg overflow-hidden">
+            <div className="bg-black/30 px-4 py-2 border-b border-border">
+              <p className="text-primary font-bold uppercase tracking-wider text-sm">Porcentaje de Aciertos</p>
+            </div>
+            <div className="divide-y divide-border/50">
+              {hitRateRanking.map((e, idx) => (
+                <div key={e.name} className={`flex items-center gap-3 px-4 py-2.5 ${idx === 0 ? "bg-primary/5" : ""}`}>
+                  <span className={`w-6 text-center font-black font-mono text-sm ${idx === 0 ? "text-primary" : "text-muted-foreground"}`}>{idx + 1}</span>
+                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: e.color }} />
+                  <span className={`flex-1 font-bold uppercase text-sm ${idx === 0 ? "text-white" : "text-muted-foreground"}`}>{e.name}</span>
+                  <span className="text-xs text-muted-foreground">{e.exact + e.sign}/{e.played}</span>
+                  <span className={`font-black text-lg tabular-nums ${idx === 0 ? "text-primary" : "text-white"}`}>{e.rate.toFixed(0)}%</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="divide-y divide-border/50">
-            {groupAccuracy.map((g) => (
-              <div key={g.name} className="px-4 py-3">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="font-bold uppercase text-sm text-white flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: g.color }} />
-                    {g.name}
-                  </span>
-                  <span className="text-xs text-muted-foreground">{g.played} partidos vaticinados</span>
-                </div>
-                <div className="w-full h-3 rounded-full overflow-hidden bg-black/30 flex">
-                  {g.played > 0 && (
-                    <>
-                      <div className="h-full bg-green-400" style={{ width: `${(g.exact / g.played) * 100}%` }} />
-                      <div className="h-full bg-yellow-400" style={{ width: `${(g.sign / g.played) * 100}%` }} />
-                      <div className="h-full bg-red-400/70" style={{ width: `${(g.miss / g.played) * 100}%` }} />
-                    </>
-                  )}
-                </div>
-                <div className="flex gap-4 mt-1.5 text-[11px] text-muted-foreground flex-wrap">
-                  <span><span className="text-green-400 font-bold">{g.exact}</span> exactos</span>
-                  <span><span className="text-yellow-400 font-bold">{g.sign}</span> solo signo</span>
-                  <span><span className="text-red-400 font-bold">{g.miss}</span> fallados</span>
-                </div>
+
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Detalle de Precisión</h2>
+
+            <div className="bg-card border border-border rounded-lg overflow-hidden">
+              <div className="bg-black/30 px-4 py-2 border-b border-border">
+                <p className="text-primary font-bold uppercase tracking-wider text-sm">Total (Grupos + Eliminatoria)</p>
               </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
-          <div className="bg-black/30 px-4 py-2 border-b border-border">
-            <p className="text-primary font-bold uppercase tracking-wider text-sm">Fase Eliminatoria</p>
-          </div>
-          <div className="divide-y divide-border/50">
-            {knockoutAccuracy.map((k) => (
-              <div key={k.name} className="px-4 py-3">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="font-bold uppercase text-sm text-white flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: k.color }} />
-                    {k.name}
-                  </span>
-                  <span className="text-xs text-muted-foreground">{k.played} partidos jugados</span>
-                </div>
-                {k.played > 0 ? (
-                  <>
-                    <div className="w-full h-3 rounded-full overflow-hidden bg-black/30 flex">
-                      <div className="h-full bg-green-400" style={{ width: `${(k.exact / k.played) * 100}%` }} />
-                      <div className="h-full bg-yellow-400" style={{ width: `${(k.sign / k.played) * 100}%` }} />
-                      <div className="h-full bg-red-400/70" style={{ width: `${(k.miss / k.played) * 100}%` }} />
-                    </div>
-                    <div className="flex gap-4 mt-1.5 text-[11px] text-muted-foreground flex-wrap">
-                      <span><span className="text-green-400 font-bold">{k.exact}</span> exactos</span>
-                      <span><span className="text-yellow-400 font-bold">{k.sign}</span> solo signo</span>
-                      <span><span className="text-red-400 font-bold">{k.miss}</span> fallados</span>
-                      <span><span className="text-primary font-bold">{k.advanceHits}/{k.advanceTotal}</span> quién pasa (Art. 20)</span>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-xs text-muted-foreground italic">Sin partidos jugados aún</p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Cadena MAV */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Cadena MAV</h2>
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-center whitespace-nowrap">
-              <thead className="text-xs text-muted-foreground bg-black/40 border-b border-border font-mono uppercase">
-                <tr>
-                  <th className="px-4 py-2 text-left">Jugador</th>
-                  <th className="px-3 py-2">x1</th>
-                  <th className="px-3 py-2">x2</th>
-                  <th className="px-3 py-2">x3</th>
-                  <th className="px-3 py-2">x4</th>
-                  <th className="px-3 py-2">Prom.</th>
-                  <th className="px-3 py-2">Re-vaticinios</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/50">
-                {mavStats.map((m) => (
-                  <tr key={m.name}>
-                    <td className="px-4 py-2.5 text-left font-bold uppercase">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: m.color }} />
-                        {m.name}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2.5 text-muted-foreground">{m.dist[1] ?? 0}</td>
-                    <td className="px-3 py-2.5 text-muted-foreground">{m.dist[2] ?? 0}</td>
-                    <td className="px-3 py-2.5 text-muted-foreground">{m.dist[3] ?? 0}</td>
-                    <td className="px-3 py-2.5 text-green-400 font-bold">{m.dist[4] ?? 0}</td>
-                    <td className="px-3 py-2.5 font-bold text-white">x{m.avgMultiplier.toFixed(2)}</td>
-                    <td className="px-3 py-2.5 text-muted-foreground">{m.overrides}</td>
-                  </tr>
+              <div className="divide-y divide-border/50">
+                {totalAccuracy.map((e) => (
+                  <AccuracyRow key={e.name} entry={e} showAdvance />
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </div>
+
+            <div className="bg-card border border-border rounded-lg overflow-hidden">
+              <div className="bg-black/30 px-4 py-2 border-b border-border">
+                <p className="text-primary font-bold uppercase tracking-wider text-sm">Fase de Grupos</p>
+              </div>
+              <div className="divide-y divide-border/50">
+                {groupAccuracy.map((e) => (
+                  <AccuracyRow key={e.name} entry={e} />
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-card border border-border rounded-lg overflow-hidden">
+              <div className="bg-black/30 px-4 py-2 border-b border-border">
+                <p className="text-primary font-bold uppercase tracking-wider text-sm">Fase Eliminatoria</p>
+              </div>
+              <div className="divide-y divide-border/50">
+                {knockoutAccuracy.map((e) => (
+                  <AccuracyRow key={e.name} entry={e} showAdvance />
+                ))}
+              </div>
+            </div>
           </div>
-          {mavStats.every((m) => m.chainEligible === 0) && (
-            <p className="px-4 py-3 text-xs text-muted-foreground italic border-t border-border">
-              Aún no hay cruces de Octavos en adelante con equipos definidos.
-            </p>
-          )}
         </div>
-      </div>
+      )}
+
+      {/* ---------------- MAV ---------------- */}
+      {subTab === "MAV" && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Cadena MAV</h2>
+          <div className="bg-card border border-border rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-center whitespace-nowrap">
+                <thead className="text-xs text-muted-foreground bg-black/40 border-b border-border font-mono uppercase">
+                  <tr>
+                    <th className="px-4 py-2 text-left">Jugador</th>
+                    <th className="px-3 py-2">x1</th>
+                    <th className="px-3 py-2">x2</th>
+                    <th className="px-3 py-2">x3</th>
+                    <th className="px-3 py-2">x4</th>
+                    <th className="px-3 py-2">Prom.</th>
+                    <th className="px-3 py-2">Re-vaticinios</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/50">
+                  {mavStats.map((m) => (
+                    <tr key={m.name}>
+                      <td className="px-4 py-2.5 text-left font-bold uppercase">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: m.color }} />
+                          {m.name}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 text-muted-foreground">{m.dist[1] ?? 0}</td>
+                      <td className="px-3 py-2.5 text-muted-foreground">{m.dist[2] ?? 0}</td>
+                      <td className="px-3 py-2.5 text-muted-foreground">{m.dist[3] ?? 0}</td>
+                      <td className="px-3 py-2.5 text-green-400 font-bold">{m.dist[4] ?? 0}</td>
+                      <td className="px-3 py-2.5 font-bold text-white">x{m.avgMultiplier.toFixed(2)}</td>
+                      <td className="px-3 py-2.5 text-muted-foreground">{m.overrides}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {mavStats.every((m) => m.chainEligible === 0) && (
+              <p className="px-4 py-3 text-xs text-muted-foreground italic border-t border-border">
+                Aún no hay cruces de Octavos en adelante con equipos definidos.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
