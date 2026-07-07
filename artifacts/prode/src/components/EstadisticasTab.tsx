@@ -433,6 +433,8 @@ export function EstadisticasTab({ results, knockoutResults }: Props) {
                           }}
                         >
                           <AreaChart data={evolution}>
+                            <XAxis dataKey="fecha" hide />
+                            <YAxis hide />
                             <Area
                               dataKey={PARTICIPANTS[0]}
                               stroke={COLORS[0]}
@@ -441,7 +443,13 @@ export function EstadisticasTab({ results, knockoutResults }: Props) {
                               isAnimationActive={false}
                             />
                             {groupKnockoutBoundaryFecha && (
-                              <ReferenceLine x={groupKnockoutBoundaryFecha} stroke="#ffffff" strokeDasharray="4 4" />
+                              <ReferenceLine
+                                x={groupKnockoutBoundaryFecha}
+                                stroke="#ffffff"
+                                strokeWidth={2}
+                                strokeDasharray="4 4"
+                                ifOverflow="extendDomain"
+                              />
                             )}
                           </AreaChart>
                         </Brush>
