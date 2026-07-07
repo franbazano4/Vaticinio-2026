@@ -11,6 +11,9 @@ import {
   LineChart,
   Line,
   Brush,
+  AreaChart,
+  Area,
+  ReferenceLine,
 } from "recharts";
 import { PARTICIPANTS, COLORS, FORECASTS, GROUP_MATCHES } from "../data/constants";
 import { KNOCKOUT_MATCHES, KNOCKOUT_MATCH_BY_ID, resolveKnockoutBracket, KnockoutResult } from "../data/knockoutBracket";
@@ -22,9 +25,10 @@ interface Props {
   knockoutResults: Record<string, KnockoutResult>;
 }
 
-type StatsSubTab = "TOTALES" | "PRECISION" | "MAV";
+type StatsSubTab = "TOTALES" | "TEMPORAL" | "PRECISION" | "MAV";
 const SUBTAB_LABELS: Record<StatsSubTab, string> = {
   TOTALES: "Totales",
+  TEMPORAL: "Temporal",
   PRECISION: "Precisión",
   MAV: "MAV",
 };
@@ -288,6 +292,37 @@ export function EstadisticasTab({ results, knockoutResults }: Props) {
     });
   }, [results, knockoutResults]);
 
+  // Fecha límite entre fase de grupos y fase eliminatoria (para la línea punteada del Brush)
+  const groupKnockoutBoundaryFecha = useMemo(() => {
+    if (evolution.length === 0) return null;
+    const lastGroupDateKey = GROUP_MATCHES.reduce((max, m) => {
+      const k = dateSortKey(m.fecha);
+      return k > max ? k : max;
+    }, "");
+    let boundary: string | null = null;
+    for (const row of evolution) {
+      if (dateSortKey(row.fecha as string) <= lastGroupDateKey) boundary = row.fecha as string;
+    }
+    return boundary;
+  }, [evolution]);
+
+  // Días en cada posición del ranking (1° a 4°)
+  const positionDaysTable = useMemo(() => {
+    const counts: Record<string, number[]> = {};
+    PARTICIPANTS.forEach((p) => {
+      counts[p] = [0, 0, 0, 0];
+    });
+    evolution.forEach((row) => {
+      const ranked = PARTICIPANTS
+        .map((p) => ({ name: p, pts: Number(row[p] ?? 0) }))
+        .sort((a, b) => b.pts - a.pts);
+      ranked.forEach((r, idx) => {
+        counts[r.name][idx]++;
+      });
+    });
+    return PARTICIPANTS.map((p, i) => ({ name: p, color: COLORS[i], days: counts[p] }));
+  }, [evolution]);
+
   const lastIndex = Math.max(evolution.length - 1, 0);
   const zoomStart = zoomRange ? Math.min(zoomRange[0], lastIndex) : 0;
   const zoomEnd = zoomRange ? Math.min(zoomRange[1], lastIndex) : lastIndex;
@@ -295,7 +330,7 @@ export function EstadisticasTab({ results, knockoutResults }: Props) {
   return (
     <div className="space-y-6">
       <div className="flex border-b border-border overflow-x-auto">
-        {(["TOTALES", "PRECISION", "MAV"] as StatsSubTab[]).map((t) => (
+        {(["TOTALES", "TEMPORAL", "PRECISION", "MAV"] as StatsSubTab[]).map((t) => (
           <button
             key={t}
             onClick={() => setSubTab(t)}
@@ -313,69 +348,7 @@ export function EstadisticasTab({ results, knockoutResults }: Props) {
       {subTab === "TOTALES" && (
         <div className="space-y-8">
           <div className="space-y-4">
-            <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Evolución de Puntos</h2>
-            {evolution.length > 0 ? (
-              <div className="space-y-3">
-                <div className="bg-card border border-border rounded-lg overflow-hidden p-4">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={evolution} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
-                      <XAxis dataKey="fecha" tick={AXIS_TICK} axisLine={{ stroke: GRID_STROKE }} tickLine={false} />
-                      <YAxis tick={AXIS_TICK} axisLine={{ stroke: GRID_STROKE }} tickLine={false} />
-                      <Tooltip content={(p: any) => <EvolutionTooltip {...p} />} />
-                      <Legend wrapperStyle={{ fontSize: 11 }} />
-                      {PARTICIPANTS.map((p, i) => (
-                        <Line key={p} type="monotone" dataKey={p} stroke={COLORS[i]} strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
-                      ))}
-                      {evolution.length > 1 && (
-                        <Brush
-                          dataKey="fecha"
-                          height={26}
-                          stroke="#FFD700"
-                          fill="rgba(255,255,255,0.03)"
-                          travellerWidth={8}
-                          startIndex={zoomStart}
-                          endIndex={zoomEnd}
-                          onChange={(r) => {
-                            if (r && typeof r.startIndex === "number" && typeof r.endIndex === "number") {
-                              setZoomRange([r.startIndex, r.endIndex]);
-                            }
-                          }}
-                        />
-                      )}
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-                {evolution.length > 1 && (
-                  <p className="text-[11px] text-muted-foreground text-center">
-                    Arrastrá los extremos de la franja inferior del gráfico para acercarte a un período.
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="bg-card border border-border rounded-lg p-6 text-center text-sm text-muted-foreground italic">
-                Sin resultados cargados todavía.
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-4">
             <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">De dónde suma cada uno</h2>
-            <div className="bg-card border border-border rounded-lg overflow-hidden p-4">
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={summary} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
-                  <XAxis dataKey="name" tick={AXIS_TICK} axisLine={{ stroke: GRID_STROKE }} tickLine={false} />
-                  <YAxis tick={AXIS_TICK} axisLine={{ stroke: GRID_STROKE }} tickLine={false} />
-                  <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "#fff", fontWeight: 700 }} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="Grupos" stackId="a" fill="#00BFFF" />
-                  <Bar dataKey="Bonus" stackId="a" fill="#98FB98" />
-                  <Bar dataKey="Fase Final" stackId="a" fill="#FFD700" />
-                  <Bar dataKey="Ronda Relámpago" stackId="a" fill="#FF6B6B" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
             <div className="overflow-x-auto bg-card border border-border rounded-md shadow-sm">
               <table className="w-full text-sm text-center whitespace-nowrap">
                 <thead className="text-xs text-muted-foreground bg-black/40 border-b border-border font-mono uppercase">
@@ -407,6 +380,122 @@ export function EstadisticasTab({ results, knockoutResults }: Props) {
                 </tbody>
               </table>
             </div>
+            <div className="bg-card border border-border rounded-lg overflow-hidden p-4">
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={summary} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
+                  <XAxis dataKey="name" tick={AXIS_TICK} axisLine={{ stroke: GRID_STROKE }} tickLine={false} />
+                  <YAxis tick={AXIS_TICK} axisLine={{ stroke: GRID_STROKE }} tickLine={false} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "#fff", fontWeight: 700 }} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="Grupos" stackId="a" fill="#00BFFF" />
+                  <Bar dataKey="Bonus" stackId="a" fill="#98FB98" />
+                  <Bar dataKey="Fase Final" stackId="a" fill="#FFD700" />
+                  <Bar dataKey="Ronda Relámpago" stackId="a" fill="#FF6B6B" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------- TEMPORAL ---------------- */}
+      {subTab === "TEMPORAL" && (
+        <div className="space-y-8">
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Evolución de Puntos</h2>
+            {evolution.length > 0 ? (
+              <div className="space-y-3">
+                <div className="bg-card border border-border rounded-lg overflow-hidden p-4">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={evolution} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
+                      <XAxis dataKey="fecha" tick={AXIS_TICK} axisLine={{ stroke: GRID_STROKE }} tickLine={false} />
+                      <YAxis tick={AXIS_TICK} axisLine={{ stroke: GRID_STROKE }} tickLine={false} />
+                      <Tooltip content={(p: any) => <EvolutionTooltip {...p} />} />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      {PARTICIPANTS.map((p, i) => (
+                        <Line key={p} type="monotone" dataKey={p} stroke={COLORS[i]} strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
+                      ))}
+                      {evolution.length > 1 && (
+                        <Brush
+                          dataKey="fecha"
+                          height={30}
+                          stroke="#FFD700"
+                          fill="rgba(255,255,255,0.03)"
+                          travellerWidth={8}
+                          startIndex={zoomStart}
+                          endIndex={zoomEnd}
+                          onChange={(r) => {
+                            if (r && typeof r.startIndex === "number" && typeof r.endIndex === "number") {
+                              setZoomRange([r.startIndex, r.endIndex]);
+                            }
+                          }}
+                        >
+                          <AreaChart data={evolution}>
+                            <Area
+                              dataKey={PARTICIPANTS[0]}
+                              stroke={COLORS[0]}
+                              fill={COLORS[0]}
+                              fillOpacity={0.15}
+                              isAnimationActive={false}
+                            />
+                            {groupKnockoutBoundaryFecha && (
+                              <ReferenceLine x={groupKnockoutBoundaryFecha} stroke="#ffffff" strokeDasharray="4 4" />
+                            )}
+                          </AreaChart>
+                        </Brush>
+                      )}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                {evolution.length > 1 && (
+                  <p className="text-[11px] text-muted-foreground text-center">
+                    Arrastrá los extremos de la franja inferior del gráfico para acercarte a un período. La línea punteada blanca marca el paso de fase de grupos a fase final.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="bg-card border border-border rounded-lg p-6 text-center text-sm text-muted-foreground italic">
+                Sin resultados cargados todavía.
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold uppercase text-white border-l-4 border-primary pl-3">Días en cada posición</h2>
+            <div className="overflow-x-auto bg-card border border-border rounded-md shadow-sm">
+              <table className="w-full text-sm text-center whitespace-nowrap">
+                <thead className="text-xs text-muted-foreground bg-black/40 border-b border-border font-mono uppercase">
+                  <tr>
+                    <th className="px-4 py-2 text-left">Jugador</th>
+                    <th className="px-3 py-2 text-primary">1°</th>
+                    <th className="px-3 py-2">2°</th>
+                    <th className="px-3 py-2">3°</th>
+                    <th className="px-3 py-2">4°</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/50">
+                  {positionDaysTable.map((p) => (
+                    <tr key={p.name}>
+                      <td className="px-4 py-2.5 text-left font-bold uppercase">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
+                          {p.name}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 font-black text-primary text-base">{p.days[0]}</td>
+                      <td className="px-3 py-2.5 text-muted-foreground">{p.days[1]}</td>
+                      <td className="px-3 py-2.5 text-muted-foreground">{p.days[2]}</td>
+                      <td className="px-3 py-2.5 text-muted-foreground">{p.days[3]}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {evolution.length === 0 && (
+              <p className="text-xs text-muted-foreground italic">Sin resultados cargados todavía.</p>
+            )}
           </div>
         </div>
       )}
