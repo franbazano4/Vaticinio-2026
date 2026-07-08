@@ -116,7 +116,10 @@ const KNOCKOUT_MATCHES: KOMatchDef[] = [
   { id: "M104", homeFrom: { matchId: "M101", take: "winner" }, awayFrom: { matchId: "M102", take: "winner" } },
 ];
 
-function resolveKnockoutLookup(): Record<string, string> {
+function resolveKnockoutLookup(): {
+  lookup: Record<string, string>;
+  teams: Record<string, { home?: string; away?: string }>;
+} {
   const resolved: Record<string, { home?: string; away?: string; winner?: string; loser?: string }> = {};
   const resolveTeam = (m: KOMatchDef, side: "home" | "away"): string | undefined => {
     if (side === "home" && m.home) return m.home;
@@ -129,12 +132,14 @@ function resolveKnockoutLookup(): Record<string, string> {
   };
 
   const lookup: Record<string, string> = {};
+  const teams: Record<string, { home?: string; away?: string }> = {};
   for (const m of KNOCKOUT_MATCHES) {
     const home = resolveTeam(m, "home");
     const away = resolveTeam(m, "away");
     if (home && away) {
       lookup[`${home}|${away}`] = m.id;
       lookup[`${away}|${home}`] = m.id;
+      teams[m.id] = { home, away };
     }
     const real = storedKnockoutResults[m.id];
     let winner: string | undefined;
@@ -150,7 +155,7 @@ function resolveKnockoutLookup(): Record<string, string> {
     }
     resolved[m.id] = { home, away, winner, loser };
   }
-  return lookup;
+  return { lookup, teams };
 }
 
 router.get("/results", (_req, res) => {
@@ -233,7 +238,7 @@ router.post("/results/fetch", async (req, res) => {
     // Resolver el cuadro eliminatorio dinámicamente (puede requerir varias pasadas
     // a medida que se van confirmando ganadores de rondas previas)
     for (let pass = 0; pass < 6; pass++) {
-      const koLookup = resolveKnockoutLookup();
+      const { lookup: koLookup, teams: koTeams } = resolveKnockoutLookup();
       for (const match of json.matches) {
         if (match.status !== "FINISHED") continue;
         const homeEs = EN_TO_ES[match.homeTeam.name] ?? match.homeTeam.name;
@@ -262,10 +267,26 @@ router.post("/results/fetch", async (req, res) => {
           }
         }
 
+        // El "home"/"away" que devuelve football-data.org para un cruce de
+        // eliminatoria no tiene por qué coincidir con el home/away que le
+        // asignamos nosotros en KNOCKOUT_MATCHES (ese es un orden arbitrario
+        // nuestro para armar el bracket). Si vino invertido respecto de
+        // nuestra convención, invertimos el resultado y los penales antes de
+        // guardarlos, para que score[0]/penalties[0] siempre correspondan a
+        // nuestro "home" del bracket.
+        const appTeams = koTeams[koMatchId];
+        const swapped = !!appTeams && appTeams.home === awayEs && appTeams.away === homeEs;
+
+        const finalScore: [number, number] = swapped ? [scoreA, scoreH] : [scoreH, scoreA];
+        let finalPenalties: [number, number] | undefined;
+        if (ph !== null && pa !== null) {
+          finalPenalties = swapped ? [pa, ph] : [ph, pa];
+        }
+
         const before = storedKnockoutResults[koMatchId];
         storedKnockoutResults[koMatchId] = {
-          score: [scoreH, scoreA],
-          penalties: ph !== null && pa !== null ? [ph, pa] : undefined,
+          score: finalScore,
+          penalties: finalPenalties,
         };
         if (!before) koCount++;
       }
