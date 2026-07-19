@@ -194,6 +194,8 @@ export const OVERRIDE_FORECASTS: Record<string, Record<string, MatchForecast>> =
     M92: { teamA: "México", teamB: "Inglaterra", scoreA: 0, scoreB: 1 },
     M94: { teamA: "EE.UU.", teamB: "Bélgica", scoreA: 2, scoreB: 1 },
     M98: { teamA: "España", teamB: "Bélgica", scoreA: 2, scoreB: 0 },
+    M103: { teamA: "España", teamB: "Argentina", scoreA: 1, scoreB: 3 },
+    M104: { teamA: "Inglaterra", teamB: "Francia", scoreA: 1, scoreB: 2 },
   },
   Mati: {
     M89: { teamA: "Paraguay", teamB: "Francia", scoreA: 0, scoreB: 2 },
@@ -203,6 +205,8 @@ export const OVERRIDE_FORECASTS: Record<string, Record<string, MatchForecast>> =
     M97: { teamA: "Francia", teamB: "Marruecos", scoreA: 2, scoreB: 2, penaltyWinner: "Marruecos", penaltyScoreA: 3, penaltyScoreB: 5 },
     M98: { teamA: "España", teamB: "Bélgica", scoreA: 1, scoreB: 0 },
     M100: { teamA: "Argentina", teamB: "Suiza", scoreA: 2, scoreB: 1 },
+    M103: { teamA: "España", teamB: "Argentina", scoreA: 4, scoreB: 4, penaltyWinner: "Argentina" },
+    M104: { teamA: "Inglaterra", teamB: "Francia", scoreA: 8, scoreB: 8, penaltyWinner: "Inglaterra", penaltyScoreA: 15, penaltyScoreB: 14 },
   },
   Cochi: {
     M89: { teamA: "Paraguay", teamB: "Francia", scoreA: 0, scoreB: 3 },
@@ -214,12 +218,16 @@ export const OVERRIDE_FORECASTS: Record<string, Record<string, MatchForecast>> =
     M100: { teamA: "Argentina", teamB: "Suiza", scoreA: 3, scoreB: 2 },
     M101: { teamA: "Francia", teamB: "España", scoreA: 2, scoreB: 1 },
     M102: { teamA: "Argentina", teamB: "Inglaterra", scoreA: 3, scoreB: 2 },
+    M103: { teamA: "Argentina", teamB: "España", scoreA: 5, scoreB: 4 },
+    M104: { teamA: "Inglaterra", teamB: "Francia", scoreA: 1, scoreB: 0 },
   },
   Fran: {
     M89: { teamA: "Francia", teamB: "Paraguay", scoreA: 3, scoreB: 1 },
     M98: { teamA: "España", teamB: "Bélgica", scoreA: 2, scoreB: 0 },
     M99: { teamA: "Noruega", teamB: "Inglaterra", scoreA: 1, scoreB: 0 },
     M100: { teamA: "Argentina", teamB: "Suiza", scoreA: 3, scoreB: 1 },
+    M103: { teamA: "España", teamB: "Argentina", scoreA: 2, scoreB: 1 },
+    M104: { teamA: "Inglaterra", teamB: "Francia", scoreA: 0, scoreB: 2 },
   },
 };
 
