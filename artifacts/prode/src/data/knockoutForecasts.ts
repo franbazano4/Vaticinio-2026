@@ -90,8 +90,8 @@ export const MAV_FORECASTS: Record<string, PlayerForecasts> = {
     M98: { teamA: "España", teamB: "EE.UU.", scoreA: 1, scoreB: 0 },
     M99: { teamA: "Noruega", teamB: "Inglaterra", scoreA: 1, scoreB: 1, penaltyWinner: "Inglaterra" },
     M100: { teamA: "Argentina", teamB: "Colombia", scoreA: 2, scoreB: 1 },
-    M101: { teamA: "Francia", teamB: "España", scoreA: 2, scoreB: 1 },
-    M102: { teamA: "Inglaterra", teamB: "Argentina", scoreA: 0, scoreB: 1 },
+    M101: { teamA: "Francia", teamB: "España", scoreA: 6, scoreB: 6, penaltyWinner: "España", penaltyScoreA: 13, penaltyScoreB: 14 },
+    M102: { teamA: "Argentina", teamB: "Inglaterra", scoreA: 8, scoreB: 8, penaltyWinner: "Inglaterra", penaltyScoreA: 22, penaltyScoreB: 23 },
     M103: { teamA: "España", teamB: "Inglaterra", scoreA: 2, scoreB: 0 },
     M104: { teamA: "Francia", teamB: "Argentina", scoreA: 1, scoreB: 2 },
   },
@@ -160,7 +160,7 @@ export const MAV_FORECASTS: Record<string, PlayerForecasts> = {
     M98: { teamA: "España", teamB: "EE.UU.", scoreA: 2, scoreB: 0 },
     M99: { teamA: "Brasil", teamB: "Inglaterra", scoreA: 1, scoreB: 1, penaltyWinner: "Inglaterra" },
     M100: { teamA: "Argentina", teamB: "Colombia", scoreA: 2, scoreB: 1 },
-    M101: { teamA: "Francia", teamB: "España", scoreA: 2, scoreB: 1 },
+    M101: { teamA: "Francia", teamB: "España", scoreA: 1, scoreB: 1, penaltyWinner: "Francia" },
     M102: { teamA: "Inglaterra", teamB: "Argentina", scoreA: 1, scoreB: 2 },
     M103: { teamA: "España", teamB: "Inglaterra", scoreA: 2, scoreB: 0 },
     M104: { teamA: "Francia", teamB: "Argentina", scoreA: 1, scoreB: 0 },
@@ -212,6 +212,8 @@ export const OVERRIDE_FORECASTS: Record<string, Record<string, MatchForecast>> =
     M98: { teamA: "España", teamB: "Bélgica", scoreA: 2, scoreB: 1 },
     M99: { teamA: "Noruega", teamB: "Inglaterra", scoreA: 2, scoreB: 1 },
     M100: { teamA: "Argentina", teamB: "Suiza", scoreA: 3, scoreB: 2 },
+    M101: { teamA: "Francia", teamB: "España", scoreA: 2, scoreB: 1 },
+    M102: { teamA: "Argentina", teamB: "Inglaterra", scoreA: 3, scoreB: 2 },
   },
   Fran: {
     M89: { teamA: "Francia", teamB: "Paraguay", scoreA: 3, scoreB: 1 },
@@ -219,4 +221,13 @@ export const OVERRIDE_FORECASTS: Record<string, Record<string, MatchForecast>> =
     M99: { teamA: "Noruega", teamB: "Inglaterra", scoreA: 1, scoreB: 0 },
     M100: { teamA: "Argentina", teamB: "Suiza", scoreA: 3, scoreB: 1 },
   },
+};
+
+// Partidos donde el jugador cambió voluntariamente su pronóstico MAV
+// (los equipos ya eran correctos, no hubo "cruce roto"). Como castigo por
+// el cambio, pierde el multiplicador de esa fase y queda fijo en x1,
+// aunque el resto de la cadena de aciertos hubiera sido correcta.
+export const FORCED_MULTIPLIER_ONE: Record<string, string[]> = {
+  Fran: ["M101"],
+  Mati: ["M101", "M102"],
 };
