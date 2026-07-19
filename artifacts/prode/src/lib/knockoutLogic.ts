@@ -1,6 +1,6 @@
 import { calcPts } from "./logic";
 import { KNOCKOUT_MATCH_BY_ID, KnockoutMatchDef, ResolvedMatch, KnockoutResult } from "../data/knockoutBracket";
-import { MAV_FORECASTS, OVERRIDE_FORECASTS, MatchForecast, PODIUM_FORECASTS } from "../data/knockoutForecasts";
+import { MAV_FORECASTS, OVERRIDE_FORECASTS, MatchForecast, PODIUM_FORECASTS, FORCED_MULTIPLIER_ONE } from "../data/knockoutForecasts";
 
 function getScoreForTeam(f: MatchForecast, team: string): number | undefined {
   if (f.teamA === team) return f.scoreA;
@@ -25,6 +25,8 @@ export function calcMavMultiplier(
   player: string,
   resolved: Record<string, ResolvedMatch>,
 ): number {
+  if (FORCED_MULTIPLIER_ONE[player]?.includes(matchId)) return 1;
+
   const match = KNOCKOUT_MATCH_BY_ID[matchId];
   if (!match) return 1;
   if (match.round === "R32") return 1;
